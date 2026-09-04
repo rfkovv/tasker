@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:taskmaster/features/contacts/contacts.dart' as contact_feature;
 import 'package:taskmaster/features/tasks/domain/task.dart';
 import 'package:taskmaster/features/tasks/domain/task_priority.dart';
 import 'package:taskmaster/features/tasks/domain/task_status.dart';
@@ -7,6 +8,7 @@ import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
 
 Task buildTask({
   String title = 'Test',
+  String? description,
   TaskStatus status = TaskStatus.todo,
   TaskPriority priority = TaskPriority.medium,
   List<String> tags = const [],
@@ -17,6 +19,7 @@ Task buildTask({
     id: 'id',
     title: title,
     tags: tags,
+    description: description,
     priority: priority,
     dueDate: dueDate,
     status: status,
@@ -36,6 +39,14 @@ void main() {
     expect(find.text('Buy milk'), findsOneWidget);
   });
 
+  testWidgets('shows truncated description summary', (tester) async {
+    await tester.pumpWidget(wrap(
+      TaskTile(task: buildTask(description: 'A long description here')),
+    ));
+
+    expect(find.text('A long description here'), findsOneWidget);
+  });
+
   testWidgets('shows tags', (tester) async {
     await tester.pumpWidget(
       wrap(TaskTile(task: buildTask(tags: const ['work', 'urgent']))),
@@ -43,6 +54,15 @@ void main() {
 
     expect(find.text('work'), findsOneWidget);
     expect(find.text('urgent'), findsOneWidget);
+  });
+
+  testWidgets('shows due date', (tester) async {
+    final due = DateTime.now().add(const Duration(days: 2));
+    await tester
+        .pumpWidget(wrap(TaskTile(task: buildTask(dueDate: due))));
+
+    expect(find.text('Overdue'), findsNothing);
+    expect(find.byIcon(Icons.calendar_today), findsOneWidget);
   });
 
   testWidgets('shows priority badge', (tester) async {
@@ -69,6 +89,38 @@ void main() {
     );
 
     expect(find.text('Overdue'), findsNothing);
+  });
+
+  testWidgets('shows relevant persons with names', (tester) async {
+    final now = DateTime.now();
+    final contacts = [
+      contact_feature.Contact(
+        id: 'c1',
+        name: 'Alice',
+        createdAt: now,
+        updatedAt: now,
+      ),
+      contact_feature.Contact(
+        id: 'c2',
+        name: 'Bob',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+    await tester.pumpWidget(
+      wrap(TaskTile(task: buildTask(), contacts: contacts)),
+    );
+
+    expect(find.text('Relevant Persons'), findsOneWidget);
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bob'), findsOneWidget);
+  });
+
+  testWidgets('does not show relevant persons when no contacts',
+      (tester) async {
+    await tester.pumpWidget(wrap(TaskTile(task: buildTask())));
+
+    expect(find.text('Relevant Persons'), findsNothing);
   });
 
   testWidgets('checkbox checked when done', (tester) async {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../contacts/contacts.dart' as contacts_feature;
+
 import '../../domain/task.dart';
 import 'overdue_indicator.dart';
 import 'task_priority_badge.dart';
@@ -8,11 +10,13 @@ class TaskTile extends StatelessWidget {
   const TaskTile({
     super.key,
     required this.task,
+    this.contacts = const [],
     this.onTap,
     this.onToggleDone,
   });
 
   final Task task;
+  final List<contacts_feature.Contact> contacts;
   final VoidCallback? onTap;
   final ValueChanged<bool>? onToggleDone;
 
@@ -25,6 +29,10 @@ class TaskTile extends StatelessWidget {
             color: theme.colorScheme.outline,
           )
         : theme.textTheme.titleMedium;
+
+    final dueDateColor = task.isOverdue
+        ? theme.colorScheme.error
+        : theme.colorScheme.outline;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -47,8 +55,41 @@ class TaskTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(task.title, style: titleStyle),
-                    if (task.tags.isNotEmpty) ...[
+                    if (task.description?.isNotEmpty ?? false) ...[
                       const SizedBox(height: 4),
+                      Text(
+                        task.description!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                    if (task.dueDate != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.calendar_today,
+                              size: 14, color: dueDateColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDate(task.dueDate!),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: dueDateColor,
+                              fontWeight: task.isOverdue
+                                  ? FontWeight.w600
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OverdueIndicator(task: task),
+                        ],
+                      ),
+                    ],
+                    if (task.tags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
@@ -63,24 +104,41 @@ class TaskTile extends StatelessWidget {
                         ],
                       ),
                     ],
+                    if (contacts.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Relevant Persons',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          for (final contact in contacts)
+                            Chip(
+                              avatar: CircleAvatar(
+                                child: Text(
+                                  contact.name.isNotEmpty
+                                      ? contact.name[0].toUpperCase()
+                                      : '?',
+                                ),
+                              ),
+                              label: Text(contact.name),
+                              visualDensity: VisualDensity.compact,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         TaskPriorityBadge(priority: task.priority),
-                        if (task.dueDate != null) ...[
-                          const SizedBox(width: 8),
-                          Icon(Icons.calendar_today,
-                              size: 14, color: theme.colorScheme.outline),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDate(task.dueDate!),
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 8),
-                        OverdueIndicator(task: task),
                       ],
                     ),
                   ],

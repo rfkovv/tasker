@@ -1,14 +1,16 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:taskmaster/features/contacts/contacts.dart' as contacts_feature;
+import 'package:taskmaster/features/contacts/domain/contact.dart';
+import 'package:taskmaster/features/contacts/domain/contact_repository.dart';
 import 'package:taskmaster/features/tasks/domain/task.dart';
 import 'package:taskmaster/features/tasks/domain/task_filter.dart';
 import 'package:taskmaster/features/tasks/domain/task_priority.dart';
 import 'package:taskmaster/features/tasks/domain/task_repository.dart';
 import 'package:taskmaster/features/tasks/domain/task_status.dart';
 import 'package:taskmaster/features/tasks/presentation/screens/task_list_screen.dart';
+import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
 import 'package:taskmaster/features/tasks/data/task_repository_provider.dart';
 
 class FakeTaskRepository implements TaskRepository {
@@ -55,6 +57,43 @@ class FakeTaskRepository implements TaskRepository {
   }
 }
 
+class FakeContactRepository implements ContactRepository {
+  @override
+  Stream<List<Contact>> watchAll({String? nameFilter}) => const Stream.empty();
+
+  @override
+  Stream<Contact?> watchById(String id) async* {}
+
+  @override
+  Future<Contact> create({
+    required String name,
+    String? role,
+    String? email,
+    String? phone,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> update(Contact contact) async {}
+
+  @override
+  Future<void> delete(String id) async {}
+
+  @override
+  Future<List<Contact>> contactsForTask(String taskId) async => const [];
+
+  @override
+  Future<Map<String, List<Contact>>> contactsByTaskIds(
+      List<String> taskIds) async {
+    return const {};
+  }
+
+  @override
+  Future<void> replaceContactsForTask(
+      String taskId, List<String> contactIds) async {}
+}
+
 Task buildTask({
   String? id,
   String title = 'Task',
@@ -72,17 +111,23 @@ Task buildTask({
   );
 }
 
-void main() {
-  Widget buildApp(List<Task> tasks) {
-    final repo = FakeTaskRepository(tasks);
-    return ProviderScope(
-      overrides: [
-        taskRepositoryProvider.overrideWithValue(repo),
-      ],
-      child: const MaterialApp(home: TaskListScreen()),
-    );
-  }
+Widget buildApp(
+  List<Task> tasks, {
+  ValueChanged<String>? onOpenTask,
+}) {
+  return ProviderScope(
+    overrides: [
+      taskRepositoryProvider.overrideWithValue(FakeTaskRepository(tasks)),
+      contacts_feature.contactRepositoryProvider
+          .overrideWithValue(FakeContactRepository()),
+    ],
+    child: MaterialApp(
+      home: TaskListScreen(onOpenTask: onOpenTask),
+    ),
+  );
+}
 
+void main() {
   testWidgets('shows empty state when no tasks', (tester) async {
     await tester.pumpWidget(buildApp([]));
     await tester.pumpAndSettle();
@@ -103,25 +148,54 @@ void main() {
 
   testWidgets('tapping task tile invokes onOpenTask', (tester) async {
     String? opened;
-    final repo = FakeTaskRepository([buildTask(id: '1', title: 'Task')]);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [taskRepositoryProvider.overrideWithValue(repo)],
-        child: MaterialApp(
-          home: TaskListScreen(onOpenTask: (id) => opened = id),
-        ),
-      ),
-    );
+    await tester.pumpWidget(buildApp(
+      [buildTask(id: '1', title: 'Task')],
+      onOpenTask: (id) => opened = id,
+    ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(Card));
+    await tester.tap(find.byType(TaskTile).first);
     expect(opened, '1');
   });
 
-  testWidgets('shows add task button', (tester) async {
-    await tester.pumpWidget(buildApp([]));
+  testWidgets('shows Add Task as footer tile and no Add Contact',
+      (tester) async {
+    await tester.pumpWidget(buildApp([buildTask(id: '1', title: 'Task')]));
     await tester.pumpAndSettle();
 
     expect(find.text('Add Task'), findsOneWidget);
+    expect(find.text('Add Contact'), findsNothing);
+  });
+
+  testWidgets('does not show FAB when list fits the window', (tester) async {
+    await tester.pumpWidget(buildApp([buildTask(id: '1', title: 'Task')]));
+    await tester.pumpAndSettle();
+
+    final fab = find.byType(FloatingActionButton);
+    expect(fab, findsOneWidget);
+    final wrapper = find.ancestor(
+      of: fab,
+      matching: find.byType(AnimatedOpacity),
+    );
+    final opacity = tester.widget<AnimatedOpacity>(wrapper);
+    expect(opacity.opacity, 0);
+    expect(tester.widget<FloatingActionButton>(fab).onPressed, isNull);
+  });
+
+  testWidgets('shows FAB when list overflows the window', (tester) async {
+    await tester.pumpWidget(buildApp([
+      for (var i = 0; i < 30; i++) buildTask(id: '$i', title: 'Task $i'),
+    ]));
+    await tester.pumpAndSettle();
+
+    final fab = find.byType(FloatingActionButton);
+    expect(fab, findsOneWidget);
+    final wrapper = find.ancestor(
+      of: fab,
+      matching: find.byType(AnimatedOpacity),
+    );
+    final opacity = tester.widget<AnimatedOpacity>(wrapper);
+    expect(opacity.opacity, 1);
+    expect(tester.widget<FloatingActionButton>(fab).onPressed, isNotNull);
   });
 }

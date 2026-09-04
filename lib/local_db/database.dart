@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'daos/contacts_dao.dart';
 import 'daos/tasks_dao.dart';
 import 'tables/app_settings_table.dart';
 import 'tables/comments_table.dart';
@@ -30,7 +31,7 @@ part 'database.g.dart';
     TaskDependencies,
     AppSettings,
   ],
-  daos: [TasksDao],
+  daos: [TasksDao, ContactsDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])

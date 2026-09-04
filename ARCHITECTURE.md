@@ -25,6 +25,12 @@ Dev environment: Linux.
 - Lewy sidebar: filtry/nawigacja pomocnicza
 - Dół okna: akcje główne (Save itp.), SafeArea
 - Prawy górny róg: pusty (docelowo pod menu/systemowe akcje)
+- Task tile: title → summary (2 linie) → deadline (+overdue) → tagi →
+  "Relevant Persons" (chipy kontaktów)
+- Nazewnictwo UI: kontakty w kontekście zadania = "Relevant Persons";
+  moduł i baza danych nadal "contacts" (nie zmieniamy modelu)
+- Add task / Add contact: ostatnia pozycja listy; FAB (prawy dolny róg)
+  tylko gdy lista przekracza wysokość okna
 
 ## Stack
 
@@ -115,13 +121,18 @@ CRDT, własny serwer) — warstwa danych ma pozwalać na wpięcie bez zmian w UI
 
 ## Plan wdrożenia (każdy etap kończy się działającą wersją)
 
-1. Rdzeń zadań + persystencja (drift, CRUD, filtry, overdue, desktop dev)
-2. Kontakty + linkowanie task↔contact (tworzenie kontaktu z formularza)
+## Plan wdrożenia (zaktualizowany)
+
+1. Rdzeń zadań + persystencja ✅ (done)
+2. Kontakty + linkowanie ✅ (etap 2)
 3. Subtasks + komentarze + detale ekranu zadania
-4. Build Windows i Linux (release, CI: GitHub Actions runner windows)
-5. Build/test Android (nawigacja mobilna, path_provider)
-6. Przygotowanie warstwy pod sync (frakcyjne pozycje, migracje schematów)
-7. Kanban, Kalendarz, Gantt
+4. Widok Kalendarza + unscheduled backlog (drag & drop / click-to-match;
+   pattern:  drag z backlogu na dzień = ustaw dueDate; drag z dnia
+   na backlog = usuń termin; click-to-match jako fallback)
+5. Build Windows i Linux (release, CI: GitHub Actions runner windows)
+6. Build/test Android (nawigacja mobilna, path_provider, long-press drag)
+7. Przygotowanie warstwy pod sync
+8. Kanban, Gantt
 
 ## Szczegóły etapu 1
 
@@ -164,6 +175,90 @@ Lokalizacja bazy przez path_provider:
 - Windows: %APPDATA% (path_provider_windows)
 Decyzja raz, helper w app/, żadnych hardcoded ścieżek w DAO.
 
+## Feature "Ekspedycje" (features/expeditions) — etap daleki
+
+Przeznaczenie: planowanie tras służbowych — trasa zawsze zaczyna się
+i kończy w siedzibie (HQ), przez wybrane przystanki. Planowanie statyczne
+(obliczenie i zaplanowanie trasy), NIE nawigacja na żywo (przyszła opcja).
+
+### Model danych (nowa kolekcja, migracja schematu)
+
+expedition
+  id TEXT PK, name TEXT,
+  ratePerKm REAL            — kopia wartości z momentu planowania
+                              (koszt ma być czytelny offline),
+  status enum (draft/planned/done),
+  createdAt INT, updatedAt INT, deletedAt INT NULL
+
+expedition_stop (przystanek; kolejność = order INT)
+  id TEXT PK, expeditionId FK, taskId FK NULL,
+  locationId TEXT (references punkt geokodowany),
+  dwellMinutes INT          — czas postoju (manualna zmiana = cascade),
+  frozen: legDistanceKm REAL, legDurationMin INT,
+          etaMin INT, etdMin REAL NULL (odliczone od startu),
+  createdAt, updatedAt
+
+expedition_tasks (composite PK)   — który task należy do ekspedycji
+  taskId FK, expeditionId FK
+
+### Zmiany w istniejących modelach (mała migracja — wcześniej!)
+
+- Kontakt: kolumna location (nazwa + lat + lon; geokodowanie Nominatim;
+  wpisanie z mapy, UI-driven)
+- Task: kolumna location (edytowalna; DEFAULT = lokalizacja
+  primary contact). Wprowadzamy pojęcie "primary contact" — flaga
+  isPrimary na relacji task_contact (dokładnie jeden na task);
+  NIE dziedziczymy z "pierwszego kontaktu z listy"
+- HQ: jedna globalna lokalizacja z settingsów (klucz hq_location)
+
+### Wyliczenia (logika domenowa, testowalna bez UI)
+
+- Trasa: OSRM route service — geometria, dystans per leg,
+  czas przejazdu (duration per leg). Kolejność: HQ → przystanki
+  (kolejność ręczna, draggable) → HQ
+- Dystans całkowity = suma odcinków geometrii (km)
+- Koszt = dystans × stawka (stawka z settingsów lub kafelka)
+- Harmonogram: eta_i = etd_(i-1) + legDuration (z OSRM);
+  etd_i = eta_i + postój_i; ręczna zmiana czasu postoju dowolnego
+  przystanku przelicza wszystkie kolejne (kaskadowo);
+  wyświetlany też ETA powrotu do HQ
+- Wartości frozen (legDistance, legDuration, eta/etd) trzymamy
+  w rekordach przystanków — plan oglądalny offline, choć liczony online
+
+### Źródła danych (OTWARTE USŁUGI)
+
+- Routing/travel time: OSRM (demo api dla dev; self-host docelowo)
+  lub OpenRouteService (darmowy klucz)
+- Geokodowanie: Nominatim — wybór lokalizacji Z MAPY (zasada UI-driven,
+  nie ręczne wpisywanie); fallback: ręczne wpisanie adresu
+- Kafelki mapy: OpenStreetMap via flutter_map
+- UWAGA OFFLINE: jedyny moduł wymagający połączenia (kafelki + routing).
+  Wymaga łączności w fazie MVP; cache kafelków i offline routing
+  (Valhalla/GraphHopper) to osobny etap przyszły
+
+### UI (zgodnie z zasadami layoutu)
+
+- Góra zakładki: edytowalne kafelki konfiguracji — siedziba, stawka km,
+  domyślny czas postoju (siedziba i stawka globalne — app_settings;
+  stawka per-ekspedycja tylko jeśli pola wymagają rozbieżności)
+- Środek: mapa z wyrysowaną trasą (flutter_map + polyline)
+- Prawy panel: per przystanek nazwa (z zadania), dystans odcinka,
+  czas przyjazdu/odjazdu, czas postoju (edytowalny); na dole:
+  łącznie dystans i koszt
+- Wybór zadań: na początku tworzenia ekspedycji — lista zadań z
+  filtrem "ma lokalizację" (checkboxy); przystanek = lokalizacja zadania
+- Kolejność przystanków: drag & drop w prawym panelu;
+  optymalizacja kolejności (TSP) jako przyszła opcja
+- Ręczna zmiana czasu postoju dowolnego przystanku przelicza
+  wszystkie ETA/ETD downstream (cascade) + czas powrotu do HQ
+
+### Zależności modelowe (wymagane PRZED tym etapem)
+
+- Migracja schematu: location na contact i task, flaga primary
+  contact, kolekcje expeditions
+- i18n: wszystkie stringi modułu przez gen_l10n (PL/EN)
+- Kolejność przystanków: ręczna; optymalizacja TSP jako przyszła opcja
+  
 ## Aktualnie nieznane / otwarte
 
 - Toggle done↔todo w liście zgubi informację o inProgress — świadome

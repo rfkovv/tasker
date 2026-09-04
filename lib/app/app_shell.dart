@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   final Widget child;
+
+  int _selectedIndex(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/contacts')) return 1;
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,17 +18,24 @@ class AppShell extends StatelessWidget {
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 900;
         if (isDesktop) {
-          return _DesktopShell(child: child);
+          return _DesktopShell(
+            selectedIndex: _selectedIndex(context),
+            child: child,
+          );
         }
-        return _MobileShell(child: child);
+        return _MobileShell(
+          selectedIndex: _selectedIndex(context),
+          child: child,
+        );
       },
     );
   }
 }
 
 class _DesktopShell extends StatelessWidget {
-  const _DesktopShell({required this.child});
+  const _DesktopShell({required this.selectedIndex, required this.child});
 
+  final int selectedIndex;
   final Widget child;
 
   @override
@@ -30,7 +44,7 @@ class _DesktopShell extends StatelessWidget {
       body: Row(
         children: [
           NavigationRail(
-            selectedIndex: 0,
+            selectedIndex: selectedIndex,
             destinations: const [
               NavigationRailDestination(
                 icon: Icon(Icons.checklist),
@@ -39,10 +53,18 @@ class _DesktopShell extends StatelessWidget {
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.contacts),
+                selectedIcon: Icon(Icons.contacts),
                 label: Text('Contacts'),
               ),
             ],
-            onDestinationSelected: (_) {},
+            onDestinationSelected: (index) {
+              switch (index) {
+                case 0:
+                  context.go('/');
+                case 1:
+                  context.go('/contacts');
+              }
+            },
           ),
           const VerticalDivider(width: 1),
           Expanded(child: child),
@@ -53,8 +75,9 @@ class _DesktopShell extends StatelessWidget {
 }
 
 class _MobileShell extends StatelessWidget {
-  const _MobileShell({required this.child});
+  const _MobileShell({required this.selectedIndex, required this.child});
 
+  final int selectedIndex;
   final Widget child;
 
   @override
@@ -62,7 +85,7 @@ class _MobileShell extends StatelessWidget {
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
+        selectedIndex: selectedIndex,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.checklist),
@@ -73,7 +96,14 @@ class _MobileShell extends StatelessWidget {
             label: 'Contacts',
           ),
         ],
-        onDestinationSelected: (_) {},
+        onDestinationSelected: (index) {
+          switch (index) {
+            case 0:
+              context.go('/');
+            case 1:
+              context.go('/contacts');
+          }
+        },
       ),
     );
   }
