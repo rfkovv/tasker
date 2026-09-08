@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 import '../../domain/task.dart';
 
 class OverdueIndicator extends StatelessWidget {
@@ -18,7 +20,7 @@ class OverdueIndicator extends StatelessWidget {
         Icon(Icons.warning_amber_rounded, size: 16, color: scheme.error),
         const SizedBox(width: 4),
         Text(
-          'Overdue',
+          AppLocalizations.of(context).overdue,
           style: Theme.of(context)
               .textTheme
               .labelSmall

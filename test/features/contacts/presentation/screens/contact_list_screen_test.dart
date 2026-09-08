@@ -6,6 +6,7 @@ import 'package:taskmaster/features/contacts/domain/contact.dart';
 import 'package:taskmaster/features/contacts/domain/contact_repository.dart';
 import 'package:taskmaster/features/contacts/presentation/screens/contact_list_screen.dart';
 import 'package:taskmaster/features/contacts/presentation/widgets/contact_tile.dart';
+import 'package:taskmaster/l10n/app_localizations.dart';
 
 class FakeContactRepository implements ContactRepository {
   FakeContactRepository(this._contacts);
@@ -91,6 +92,9 @@ Widget buildApp(
           .overrideWithValue(FakeContactRepository(contacts)),
     ],
     child: MaterialApp(
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: ContactListScreen(onOpenContact: onOpenContact),
     ),
   );

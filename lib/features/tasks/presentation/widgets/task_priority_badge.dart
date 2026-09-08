@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 import '../../domain/task_priority.dart';
+
+String taskPriorityLabel(BuildContext context, TaskPriority priority) {
+  final l10n = AppLocalizations.of(context);
+  return switch (priority) {
+    TaskPriority.low => l10n.priorityLow,
+    TaskPriority.medium => l10n.priorityMedium,
+    TaskPriority.high => l10n.priorityHigh,
+    TaskPriority.urgent => l10n.priorityUrgent,
+  };
+}
 
 class TaskPriorityBadge extends StatelessWidget {
   const TaskPriorityBadge({super.key, required this.priority});
@@ -10,11 +22,12 @@ class TaskPriorityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (color, label) = switch (priority) {
-      TaskPriority.low => (scheme.outline, 'Low'),
-      TaskPriority.medium => (scheme.tertiary, 'Medium'),
-      TaskPriority.high => (scheme.errorContainer, 'High'),
-      TaskPriority.urgent => (scheme.error, 'Urgent'),
+    final label = taskPriorityLabel(context, priority);
+    final color = switch (priority) {
+      TaskPriority.low => scheme.outline,
+      TaskPriority.medium => scheme.tertiary,
+      TaskPriority.high => scheme.errorContainer,
+      TaskPriority.urgent => scheme.error,
     };
 
     return Container(

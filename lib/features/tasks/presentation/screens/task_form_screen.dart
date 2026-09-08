@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../contacts/data/contact_repository_provider.dart';
 import '../../../contacts/presentation/providers/contact_list_provider.dart';
+import '../../../../l10n/app_localizations.dart';
+
 import '../../domain/task.dart';
 import '../../domain/task_priority.dart';
 import '../providers/task_contacts_provider.dart';
 import '../providers/task_form_provider.dart';
 import '../providers/task_list_provider.dart';
+import '../widgets/task_priority_badge.dart';
 
 class TaskFormScreen extends ConsumerStatefulWidget {
   const TaskFormScreen({super.key, this.taskId, this.onSaved});
@@ -59,9 +62,11 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       _descriptionController.text = task.description ?? '';
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNew ? 'New Task' : 'Edit Task'),
+        title: Text(_isNew ? l10n.newTask : l10n.editTask),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.maybePop(context),
@@ -73,7 +78,11 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             child: taskAsync is AsyncLoading
                 ? const Center(child: CircularProgressIndicator())
                 : taskAsync is AsyncError
-                    ? Center(child: Text('Error: ${taskAsync.error}'))
+                    ? Center(
+                        child: Text(
+                          l10n.errorWithValue(taskAsync.error.toString()),
+                        ),
+                      )
                     : _buildForm(context, form, formNotifier),
           ),
           const Divider(height: 1),
@@ -91,7 +100,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                         Navigator.maybePop(context);
                       }
                     },
-                    child: const Text('Save'),
+                    child: Text(l10n.save),
                   ),
                 ],
               ),
@@ -107,6 +116,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     TaskFormState form,
     TaskForm formController,
   ) {
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -114,9 +124,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         children: [
           TextField(
             controller: _titleController,
-            decoration: const InputDecoration(
-              labelText: 'Title',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.titleLabel,
+              border: const OutlineInputBorder(),
             ),
             textInputAction: TextInputAction.next,
             onChanged: formController.setTitle,
@@ -124,9 +134,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Description',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.descriptionLabel,
+              border: const OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
             maxLines: 4,
@@ -169,17 +179,18 @@ class _ContactsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contactsAsync = ref.watch(taskContactsManagerProvider(taskId));
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text('Contacts', style: Theme.of(context).textTheme.titleSmall),
+            Text(l10n.contacts, style: Theme.of(context).textTheme.titleSmall),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.add, size: 20),
-              tooltip: 'Link contact',
+              tooltip: l10n.linkContact,
               onPressed: () => _showLinkContactSheet(context, ref),
             ),
           ],
@@ -188,7 +199,7 @@ class _ContactsSection extends ConsumerWidget {
         contactsAsync.when(
           data: (contacts) => contacts.isEmpty
               ? Text(
-                  'No contacts linked',
+                  l10n.noContactsLinked,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.outline,
                       ),
@@ -220,7 +231,7 @@ class _ContactsSection extends ConsumerWidget {
             height: 24,
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
-          error: (e, _) => Text('Error: $e'),
+          error: (e, _) => Text(l10n.errorWithValue(e.toString())),
         ),
       ],
     );
@@ -267,6 +278,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
     final linkedIds = linkedAsync.hasValue
         ? linkedAsync.value!.map((c) => c.id).toSet()
         : <String>{};
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -279,7 +291,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Link Contact',
+          Text(l10n.linkContactTitle,
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           if (!_showInlineCreate) ...[
@@ -294,13 +306,13 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('No contacts available'),
+                          Text(l10n.noContactsAvailable),
                           const SizedBox(height: 12),
                           TextButton.icon(
                             onPressed: () =>
                                 setState(() => _showInlineCreate = true),
                             icon: const Icon(Icons.add),
-                            label: const Text('Create new contact'),
+                            label: Text(l10n.createNewContact),
                           ),
                         ],
                       ),
@@ -315,7 +327,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                           onPressed: () =>
                               setState(() => _showInlineCreate = true),
                           icon: const Icon(Icons.add),
-                          label: const Text('Create new contact'),
+                          label: Text(l10n.createNewContact),
                         );
                       }
                       final contact = available[index];
@@ -345,41 +357,43 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                 },
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                error: (e, _) => Center(
+                    child: Text(l10n.errorWithValue(e.toString())),
+                  ),
               ),
             ),
           ] else ...[
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.nameLabel,
+                border: const OutlineInputBorder(),
               ),
               autofocus: true,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _roleController,
-              decoration: const InputDecoration(
-                labelText: 'Role (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.roleOptional,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.emailOptional,
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.phoneOptional,
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.phone,
             ),
@@ -389,7 +403,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                 TextButton(
                   onPressed: () =>
                       setState(() => _showInlineCreate = false),
-                  child: const Text('Back'),
+                  child: Text(l10n.back),
                 ),
                 const Spacer(),
                 FilledButton(
@@ -416,7 +430,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                         .attach(contact.id);
                     if (context.mounted) Navigator.pop(context);
                   },
-                  child: const Text('Create & Link'),
+                  child: Text(l10n.createAndLink),
                 ),
               ],
             ),
@@ -435,15 +449,20 @@ class _PrioritySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Priority', style: Theme.of(context).textTheme.titleSmall),
+        Text(l10n.filterPriority,
+            style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         SegmentedButton<TaskPriority>(
           segments: [
             for (final p in TaskPriority.values)
-              ButtonSegment(value: p, label: Text(p.name)),
+              ButtonSegment(
+                value: p,
+                label: Text(taskPriorityLabel(context, p)),
+              ),
           ],
           selected: {value},
           onSelectionChanged: (s) => onChanged(s.first),
@@ -461,10 +480,11 @@ class _DueDateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Due date', style: Theme.of(context).textTheme.titleSmall),
+        Text(l10n.dueDate, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -472,7 +492,7 @@ class _DueDateField extends StatelessWidget {
               icon: const Icon(Icons.calendar_today),
               label: Text(
                 value == null
-                    ? 'No due date'
+                    ? l10n.noDueDate
                     : '${value!.year}-${value!.month.toString().padLeft(2, '0')}-${value!.day.toString().padLeft(2, '0')}',
               ),
               onPressed: () async {
@@ -512,10 +532,11 @@ class _TagsField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tags', style: Theme.of(context).textTheme.titleSmall),
+        Text(l10n.tags, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -531,9 +552,9 @@ class _TagsField extends StatelessWidget {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Type a tag and press enter...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.tagsHint,
+            border: const OutlineInputBorder(),
             isDense: true,
           ),
           onSubmitted: (value) {

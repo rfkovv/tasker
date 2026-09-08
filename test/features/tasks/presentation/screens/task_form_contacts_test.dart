@@ -11,6 +11,7 @@ import 'package:taskmaster/features/tasks/domain/task_priority.dart';
 import 'package:taskmaster/features/tasks/domain/task_status.dart';
 import 'package:taskmaster/features/tasks/domain/task_repository.dart';
 import 'package:taskmaster/features/tasks/presentation/screens/task_form_screen.dart';
+import 'package:taskmaster/l10n/app_localizations.dart';
 
 class _FakeContactRepository implements ContactRepository {
   _FakeContactRepository(this._contacts);
@@ -142,8 +143,11 @@ void main() {
         taskRepositoryProvider.overrideWithValue(
             taskRepo ?? _FakeTaskRepository()),
       ],
-      child: const MaterialApp(
-        home: TaskFormScreen(taskId: 't1'),
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const TaskFormScreen(taskId: 't1'),
       ),
     );
   }

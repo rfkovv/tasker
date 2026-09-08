@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/contacts/presentation/screens/contact_form_screen.dart';
 import '../features/contacts/presentation/screens/contact_list_screen.dart';
+import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/tasks/presentation/screens/task_form_screen.dart';
 import '../features/tasks/presentation/screens/task_list_screen.dart';
 import 'app_shell.dart';
@@ -43,6 +44,10 @@ final appRouter = GoRouter(
               onSaved: () => context.go('/contacts'),
             );
           },
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
         ),
       ],
     ),

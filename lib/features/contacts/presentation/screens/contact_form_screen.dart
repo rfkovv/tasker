@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 import '../../domain/contact.dart';
 import '../providers/contact_form_provider.dart';
 import '../providers/contact_list_provider.dart';
@@ -61,9 +63,11 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
       _phoneController.text = contact.phone ?? '';
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNew ? 'New Contact' : 'Edit Contact'),
+        title: Text(_isNew ? l10n.newContact : l10n.editContact),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.maybePop(context),
@@ -75,7 +79,11 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             child: contactAsync is AsyncLoading
                 ? const Center(child: CircularProgressIndicator())
                 : contactAsync is AsyncError
-                    ? Center(child: Text('Error: ${contactAsync.error}'))
+                    ? Center(
+                        child: Text(
+                          l10n.errorWithValue(contactAsync.error.toString()),
+                        ),
+                      )
                     : _buildForm(context, form, formNotifier),
           ),
           const Divider(height: 1),
@@ -94,7 +102,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
                         Navigator.maybePop(context);
                       }
                     },
-                    child: const Text('Save'),
+                    child: Text(l10n.save),
                   ),
                 ],
               ),
@@ -110,6 +118,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
     ContactFormState form,
     ContactForm formController,
   ) {
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -117,9 +126,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
         children: [
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.nameLabel,
+              border: const OutlineInputBorder(),
             ),
             textInputAction: TextInputAction.next,
             onChanged: formController.setName,
@@ -127,9 +136,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _roleController,
-            decoration: const InputDecoration(
-              labelText: 'Role',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.roleLabel,
+              border: const OutlineInputBorder(),
             ),
             textInputAction: TextInputAction.next,
             onChanged: formController.setRole,
@@ -137,9 +146,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.emailLabel,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -148,9 +157,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _phoneController,
-            decoration: const InputDecoration(
-              labelText: 'Phone',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.phoneLabel,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.phone,
             onChanged: formController.setPhone,

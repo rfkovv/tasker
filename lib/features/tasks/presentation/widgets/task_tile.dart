@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../contacts/contacts.dart' as contacts_feature;
+import '../../../../l10n/app_localizations.dart';
 
 import '../../domain/task.dart';
 import 'overdue_indicator.dart';
@@ -75,7 +76,7 @@ class TaskTile extends StatelessWidget {
                               size: 14, color: dueDateColor),
                           const SizedBox(width: 4),
                           Text(
-                            _formatDate(task.dueDate!),
+                            _formatDate(context, task.dueDate!),
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: dueDateColor,
                               fontWeight: task.isOverdue
@@ -107,7 +108,7 @@ class TaskTile extends StatelessWidget {
                     if (contacts.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Relevant Persons',
+                        AppLocalizations.of(context).relevantPersons,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.outline,
                           fontWeight: FontWeight.w600,
@@ -155,18 +156,29 @@ class TaskTile extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final local = date.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(local.year, local.month, local.day);
 
-    if (day == today) return 'Today';
-    if (day == today.add(const Duration(days: 1))) return 'Tomorrow';
+    if (day == today) return l10n.today;
+    if (day == today.add(const Duration(days: 1))) return l10n.tomorrow;
 
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    final months = [
+      l10n.monthJan,
+      l10n.monthFeb,
+      l10n.monthMar,
+      l10n.monthApr,
+      l10n.monthMay,
+      l10n.monthJun,
+      l10n.monthJul,
+      l10n.monthAug,
+      l10n.monthSep,
+      l10n.monthOct,
+      l10n.monthNov,
+      l10n.monthDec,
     ];
     return '${months[local.month - 1]} ${local.day}';
   }

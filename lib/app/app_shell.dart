@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/app_localizations.dart';
+
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
@@ -8,6 +10,7 @@ class AppShell extends StatelessWidget {
 
   int _selectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/settings')) return 2;
     if (location.startsWith('/contacts')) return 1;
     return 0;
   }
@@ -40,23 +43,34 @@ class _DesktopShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
             selectedIndex: selectedIndex,
-            destinations: const [
+            destinations: [
               NavigationRailDestination(
-                icon: Icon(Icons.checklist),
-                selectedIcon: Icon(Icons.checklist),
-                label: Text('Tasks'),
+                icon: const Icon(Icons.checklist),
+                selectedIcon: const Icon(Icons.checklist),
+                label: Text(l10n.tasks),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.contacts),
-                selectedIcon: Icon(Icons.contacts),
-                label: Text('Contacts'),
+                icon: const Icon(Icons.contacts),
+                selectedIcon: const Icon(Icons.contacts),
+                label: Text(l10n.contacts),
               ),
             ],
+            trailing: Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: l10n.settings,
+                  onPressed: () => context.go('/settings'),
+                ),
+              ),
+            ),
             onDestinationSelected: (index) {
               switch (index) {
                 case 0:
@@ -82,18 +96,23 @@ class _MobileShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.checklist),
-            label: 'Tasks',
+            icon: const Icon(Icons.checklist),
+            label: l10n.tasks,
           ),
           NavigationDestination(
-            icon: Icon(Icons.contacts),
-            label: 'Contacts',
+            icon: const Icon(Icons.contacts),
+            label: l10n.contacts,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings),
+            label: l10n.settings,
           ),
         ],
         onDestinationSelected: (index) {
@@ -102,6 +121,8 @@ class _MobileShell extends StatelessWidget {
               context.go('/');
             case 1:
               context.go('/contacts');
+            case 2:
+              context.go('/settings');
           }
         },
       ),

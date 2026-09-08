@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../contacts/contacts.dart' as contacts_feature;
+import '../../../../l10n/app_localizations.dart';
 
 import '../../data/task_repository_provider.dart';
 import '../../domain/task_filter.dart';
@@ -9,7 +10,17 @@ import '../../domain/task_priority.dart';
 import '../../domain/task_status.dart';
 import '../providers/task_contacts_by_task_provider.dart';
 import '../providers/task_list_provider.dart';
+import '../widgets/task_priority_badge.dart';
 import '../widgets/task_tile.dart';
+
+String taskStatusLabel(BuildContext context, TaskStatus status) {
+  final l10n = AppLocalizations.of(context);
+  return switch (status) {
+    TaskStatus.todo => l10n.statusTodo,
+    TaskStatus.inProgress => l10n.statusInProgress,
+    TaskStatus.done => l10n.statusDone,
+  };
+}
 
 class TaskListScreen extends ConsumerStatefulWidget {
   const TaskListScreen({super.key, this.onOpenTask});
@@ -35,7 +46,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tasks'),
+        title: Text(AppLocalizations.of(context).tasks),
       ),
       body: Column(
         children: [
@@ -120,7 +131,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     ),
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
+                    error: (e, _) => Center(
+                      child: Text(
+                        AppLocalizations.of(context).errorWithValue(
+                          e.toString(),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -146,7 +163,7 @@ class _FooterTile extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: ListTile(
           leading: Icon(Icons.add_task, color: theme.colorScheme.primary),
-          title: const Text('Add Task'),
+          title: Text(AppLocalizations.of(context).addTask),
           onTap: onAddTask,
         ),
       ),
@@ -169,10 +186,13 @@ class _EmptyState extends StatelessWidget {
             color: Theme.of(context).colorScheme.outline,
           ),
           const SizedBox(height: 16),
-          Text('No tasks yet', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            AppLocalizations.of(context).noTasksYet,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 4),
           Text(
-            'Tap "Add Task" to create your first task',
+            AppLocalizations.of(context).noTasksHint,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
@@ -198,9 +218,15 @@ class _FilterSidebar extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Filters', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                AppLocalizations.of(context).filters,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 16),
-              Text('Status', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                AppLocalizations.of(context).filterStatus,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -208,7 +234,11 @@ class _FilterSidebar extends ConsumerWidget {
                 children: [
                   for (final status in [null, ...TaskStatus.values])
                     ChoiceChip(
-                      label: Text(status?.name ?? 'All'),
+                      label: Text(
+                        status == null
+                            ? AppLocalizations.of(context).filterAll
+                            : taskStatusLabel(context, status),
+                      ),
                       selected: filter.status == status,
                       onSelected: (_) {
                         ref.read(taskFilterStateProvider.notifier).setFilter(
@@ -222,7 +252,10 @@ class _FilterSidebar extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              Text('Priority', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                AppLocalizations.of(context).filterPriority,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -230,7 +263,11 @@ class _FilterSidebar extends ConsumerWidget {
                 children: [
                   for (final priority in [null, ...TaskPriority.values])
                     ChoiceChip(
-                      label: Text(priority?.name ?? 'All'),
+                      label: Text(
+                        priority == null
+                            ? AppLocalizations.of(context).filterAll
+                            : taskPriorityLabel(context, priority),
+                      ),
                       selected: filter.priority == priority,
                       onSelected: (_) {
                         ref.read(taskFilterStateProvider.notifier).setFilter(
@@ -252,7 +289,7 @@ class _FilterSidebar extends ConsumerWidget {
                         .read(taskFilterStateProvider.notifier)
                         .setFilter(TaskFilter.none);
                   },
-                  child: const Text('Reset filters'),
+                  child: Text(AppLocalizations.of(context).resetFilters),
                 ),
               ],
             ],

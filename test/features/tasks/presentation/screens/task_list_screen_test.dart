@@ -12,6 +12,7 @@ import 'package:taskmaster/features/tasks/domain/task_status.dart';
 import 'package:taskmaster/features/tasks/presentation/screens/task_list_screen.dart';
 import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
 import 'package:taskmaster/features/tasks/data/task_repository_provider.dart';
+import 'package:taskmaster/l10n/app_localizations.dart';
 
 class FakeTaskRepository implements TaskRepository {
   FakeTaskRepository(this._tasks);
@@ -122,6 +123,9 @@ Widget buildApp(
           .overrideWithValue(FakeContactRepository()),
     ],
     child: MaterialApp(
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: TaskListScreen(onOpenTask: onOpenTask),
     ),
   );

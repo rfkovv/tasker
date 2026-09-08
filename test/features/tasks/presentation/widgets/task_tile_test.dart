@@ -5,6 +5,7 @@ import 'package:taskmaster/features/tasks/domain/task.dart';
 import 'package:taskmaster/features/tasks/domain/task_priority.dart';
 import 'package:taskmaster/features/tasks/domain/task_status.dart';
 import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
+import 'package:taskmaster/l10n/app_localizations.dart';
 
 Task buildTask({
   String title = 'Test',
@@ -29,7 +30,12 @@ Task buildTask({
 }
 
 Widget wrap(Widget child) {
-  return MaterialApp(home: Scaffold(body: child));
+  return MaterialApp(
+    locale: const Locale('en'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  );
 }
 
 void main() {

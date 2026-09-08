@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 import '../providers/contact_list_provider.dart';
 import '../widgets/contact_tile.dart';
 
@@ -24,7 +26,7 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Contacts'),
+        title: Text(AppLocalizations.of(context).contacts),
       ),
       body: contactsAsync.when(
         data: (contacts) => Stack(
@@ -80,7 +82,11 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Text(
+            AppLocalizations.of(context).errorWithValue(e.toString()),
+          ),
+        ),
       ),
     );
   }
@@ -100,7 +106,7 @@ class _FooterTile extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: ListTile(
           leading: Icon(Icons.person_add, color: theme.colorScheme.primary),
-          title: const Text('Add Contact'),
+          title: Text(AppLocalizations.of(context).addContact),
           onTap: onAddContact,
         ),
       ),
@@ -123,11 +129,13 @@ class _EmptyState extends StatelessWidget {
             color: Theme.of(context).colorScheme.outline,
           ),
           const SizedBox(height: 16),
-          Text('No contacts yet',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            AppLocalizations.of(context).noContactsYet,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 4),
           Text(
-            'Tap "Add Contact" to create your first contact',
+            AppLocalizations.of(context).noContactsHint,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
