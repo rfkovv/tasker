@@ -46,6 +46,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filters => 'Filters';
 
   @override
+  String get filter => 'Filter';
+
+  @override
   String get filterStatus => 'Status';
 
   @override
@@ -53,6 +56,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterAll => 'All';
+
+  @override
+  String get filterTags => 'Tags';
+
+  @override
+  String get hideDone => 'Hide done';
+
+  @override
+  String get noTags => 'No tags';
 
   @override
   String get resetFilters => 'Reset filters';

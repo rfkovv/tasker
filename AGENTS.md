@@ -3,38 +3,41 @@
 PROJECT: TaskMaster (Flutter menedżer zadań)
 ARCHITECTURE: See ARCHITECTURE.md — follow it strictly, no deviations without approval.
 
-CURRENT PHASE: Stage 2.5 — Settings + i18n + theme
+CURRENT PHASE: Stage 3 — Task list redesign (tiles + Relevant Persons)
 
-STAGE 2.5 SCOPE (do NOT exceed):
-- features/settings: provider globalny (@Riverpod, keepAlive) +
-  ekran ustawień zgodny z zasadami layoutu
-- Sidebar: wpis "Settings" PRZYPIĘTY DO DOŁU lewego panelu
-  (oddzielony od filtra nawigacji)
-- Język: polski + angielski (flutter_localizations + gen_l10n,
-  pliki .arb; l10n.yaml + flutter_localizations w pubspec)
-- ZERO hardcoded UI strings — wszystko przez AppLocalizations;
-  obowiązuje wstecz dla istniejących ekranów (tasks, contacts)
-- Motyw: system / jasny / ciemny (dwie ThemeData + themeMode)
-- Persistence: app_settings (key-value); odczyt przy starcie PRZED
-  budową MaterialApp; zmiana stosowana natychmiast, bez restartu
-- Router: '/settings'
+STAGE 3 SCOPE (do NOT exceed):
+- task_tile.dart rozbudowa — kolejność treści:
+  1) tytuł (prominent)
+  2) skrócony opis (maxLines: 2, ellipsis)
+  3) deadline (format daty; wizualne oznaczenie overdue — reuse)
+  4) tagi jako chipy
+  5) linkowane kontakty pod etykietą "Relevant Persons"
+     (imiona jako chipy/avatary; UI-only naming — model i baza
+     nadal "contacts", NIE zmieniamy nazw klas/tabel)
+- Dane kontaktów dla kafelka: join przez publiczny interfejs
+  features/contacts barrel (repository/provider) — NIE przez import
+  z features/contacts/data; provider listy zadań dołącza nazwy kontaktów
+- "Add task": ostatnia pozycja listy (footer tile) + warunkowy FAB
+  (prawy dolny róg) TYLKO gdy lista przekracza wysokość okna
+- Kontakty: brak zmian funkcjonalnych
 
-OUT OF SCOPE:
-- Zadania/kontakty zmiany funkcjonalne, kalendarz, sync, ekspedycje
+OUT OF SCOPE: subtasks, komentarze, kalendarz, sync, ekspedycje
+
+RULES (przypomnienie): DAG zależności — tasks mogą konsumować kontakty
+tylko przez publiczny interfejs; zero importów z contacts/data
 
 IMPLEMENTATION ORDER:
-1. Konfiguracja i18n: l10n.yaml, pubspec (flutter_localizations),
-   pliki .arb (PL + EN) pokrywające WSZYSTKIE istniejące ekrany
-2. Migracja istniejących widgetów na AppLocalizations (no hardcoded strings)
-3. SettingsProvider + persist w app_settings (theme, language)
-4. Ekran settings + wpis w sidebarze (dół)
-5. Startup: odczyt ustawień przed MaterialApp (bez mrugnięcia domyślnym motywem)
-6. Tests: persistencja providera, widget test przełączania motywu/języka
+1. Joining provider (tasks + contact names per task)
+2. task_tile redesign (content wg kolejności powyżej)
+3. Footer "Add task" + conditional FAB (scroll check)
+4. Widget tests: tile content, FAB conditional
+5. analyze + testy per warstwa
 
 COMPLETION CRITERIA:
-- Zmiana języka i motywu natychmiastowa, przetrwa restart;
-  wszystkie istniejące ekrany przetłumaczone PL/EN;
-  settings dostępne z dołu sidebaru
+- Kafelek pokazuje: tytuł, 2-liniowy skrócony opis, deadline
+  (overdue wizualnie), tagi, "Relevant Persons";
+  Add task jako ostatnia pozycja; FAB tylko gdy lista się nie mieści;
+  wszystkie testy zielone
 
 RULES:
 1. Feature-first structure; mirror conventions of features/tasks/ exactly

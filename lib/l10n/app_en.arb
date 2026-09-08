@@ -18,9 +18,13 @@
     }
   },
   "filters": "Filters",
+  "filter": "Filter",
   "filterStatus": "Status",
   "filterPriority": "Priority",
   "filterAll": "All",
+  "filterTags": "Tags",
+  "hideDone": "Hide done",
+  "noTags": "No tags",
   "resetFilters": "Reset filters",
   "statusTodo": "To Do",
   "statusInProgress": "In Progress",

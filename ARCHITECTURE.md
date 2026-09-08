@@ -25,6 +25,14 @@ Dev environment: Linux.
 - Lewy sidebar: filtry/nawigacja pomocnicza
 - Dół okna: akcje główne (Save itp.), SafeArea
 - Prawy górny róg: pusty (docelowo pod menu/systemowe akcje)
+- Sidebar (desktop): NavigationRail z głównymi destynacjami (Tasks,
+  Contacts); Settings przyklejony do DOŁU panelu (poza railem, pod
+  separatorem). selectedIndex raila defensywnie mapowany z trasy
+  (nieznana trasa → index 0; /settings → selectedIndex null), nigdy
+  poza zakresem destinations.
+- Filtry zadań/kontaktów: przycisk "Filter" nad listą (dropdown:
+  status, priorytet, tagi, hide done / inicjał kontaktu) + badge
+  podsumowania; lewy sidebar tylko nawigacja
 - Task tile: title → summary (2 linie) → deadline (+overdue) → tagi →
   "Relevant Persons" (chipy kontaktów)
 - Nazewnictwo UI: kontakty w kontekście zadania = "Relevant Persons";

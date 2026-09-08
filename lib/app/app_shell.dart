@@ -44,45 +44,88 @@ class _DesktopShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final railIndex = selectedIndex >= 2 ? null : selectedIndex;
+    final isSettingsSelected = selectedIndex == 2;
+
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
-            selectedIndex: selectedIndex,
-            destinations: [
-              NavigationRailDestination(
-                icon: const Icon(Icons.checklist),
-                selectedIcon: const Icon(Icons.checklist),
-                label: Text(l10n.tasks),
-              ),
-              NavigationRailDestination(
-                icon: const Icon(Icons.contacts),
-                selectedIcon: const Icon(Icons.contacts),
-                label: Text(l10n.contacts),
-              ),
-            ],
-            trailing: Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: IconButton(
-                  icon: const Icon(Icons.settings),
-                  tooltip: l10n.settings,
-                  onPressed: () => context.go('/settings'),
+          Column(
+            children: [
+              Expanded(
+                child: NavigationRail(
+                  selectedIndex: railIndex,
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.checklist),
+                      selectedIcon: const Icon(Icons.checklist),
+                      label: Text(l10n.tasks),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.contacts),
+                      selectedIcon: const Icon(Icons.contacts),
+                      label: Text(l10n.contacts),
+                    ),
+                  ],
+                  onDestinationSelected: (index) {
+                    switch (index) {
+                      case 0:
+                        context.go('/');
+                      case 1:
+                        context.go('/contacts');
+                    }
+                  },
                 ),
               ),
-            ),
-            onDestinationSelected: (index) {
-              switch (index) {
-                case 0:
-                  context.go('/');
-                case 1:
-                  context.go('/contacts');
-              }
-            },
+              const Divider(height: 1),
+              _RailSettingsEntry(
+                selected: isSettingsSelected,
+                onTap: () => context.go('/settings'),
+              ),
+            ],
           ),
           const VerticalDivider(width: 1),
           Expanded(child: child),
         ],
+      ),
+    );
+  }
+}
+
+class _RailSettingsEntry extends StatelessWidget {
+  const _RailSettingsEntry({
+    required this.selected,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final labelStyle = Theme.of(context).textTheme.labelMedium;
+    final color = selected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant;
+
+    return Material(
+      color: selected ? scheme.secondaryContainer : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.settings, color: color),
+              const SizedBox(height: 4),
+              Text(
+                l10n.settings,
+                style: labelStyle?.copyWith(color: color),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

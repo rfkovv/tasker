@@ -26,6 +26,8 @@ class FakeTaskRepository implements TaskRepository {
       if (filter.priority != null && t.priority != filter.priority) {
         return false;
       }
+      if (filter.hideDone && t.status == TaskStatus.done) return false;
+      if (filter.tag != null && !t.tags.contains(filter.tag)) return false;
       return true;
     }).toList();
     return Stream.value(filtered);
@@ -99,13 +101,15 @@ Task buildTask({
   String? id,
   String title = 'Task',
   TaskStatus status = TaskStatus.todo,
+  TaskPriority priority = TaskPriority.medium,
+  List<String> tags = const [],
 }) {
   final now = DateTime.now();
   return Task(
     id: id ?? 'id',
     title: title,
-    tags: const [],
-    priority: TaskPriority.medium,
+    tags: tags,
+    priority: priority,
     status: status,
     createdAt: now,
     updatedAt: now,
@@ -201,5 +205,91 @@ void main() {
     final opacity = tester.widget<AnimatedOpacity>(wrapper);
     expect(opacity.opacity, 1);
     expect(tester.widget<FloatingActionButton>(fab).onPressed, isNotNull);
+  });
+
+  Future<void> makeWindowTall(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  testWidgets('filters tasks by status via dropdown', (tester) async {
+    await makeWindowTall(tester);
+    await tester.pumpWidget(buildApp([
+      buildTask(id: '1', title: 'Todo Task'),
+      buildTask(id: '2', title: 'Done Task', status: TaskStatus.done),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Todo Task'), findsNothing);
+    expect(find.text('Done Task'), findsOneWidget);
+    expect(find.widgetWithText(Chip, 'Done'), findsOneWidget);
+  });
+
+  testWidgets('filters tasks by tag via dropdown', (tester) async {
+    await makeWindowTall(tester);
+    await tester.pumpWidget(buildApp([
+      buildTask(id: '1', title: 'Work Task', tags: ['work']),
+      buildTask(id: '2', title: 'Personal Task'),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('#work'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Work Task'), findsOneWidget);
+    expect(find.text('Personal Task'), findsNothing);
+    expect(find.widgetWithText(Chip, '#work'), findsOneWidget);
+  });
+
+  testWidgets('hides done tasks via dropdown', (tester) async {
+    await makeWindowTall(tester);
+    await tester.pumpWidget(buildApp([
+      buildTask(id: '1', title: 'Open'),
+      buildTask(id: '2', title: 'Closed', status: TaskStatus.done),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hide done'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open'), findsOneWidget);
+    expect(find.text('Closed'), findsNothing);
+    expect(find.widgetWithText(Chip, 'Hide done'), findsOneWidget);
+  });
+
+  testWidgets('reset filters restores full list', (tester) async {
+    await makeWindowTall(tester);
+    await tester.pumpWidget(buildApp([
+      buildTask(id: '1', title: 'Open'),
+      buildTask(id: '2', title: 'Closed', status: TaskStatus.done),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hide done'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Closed'), findsNothing);
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset filters'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open'), findsOneWidget);
+    expect(find.text('Closed'), findsOneWidget);
+    expect(find.widgetWithText(Chip, 'Hide done'), findsNothing);
   });
 }

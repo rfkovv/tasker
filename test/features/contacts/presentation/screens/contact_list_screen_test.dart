@@ -171,4 +171,46 @@ void main() {
     expect(opacity.opacity, 1);
     expect(tester.widget<FloatingActionButton>(fab).onPressed, isNotNull);
   });
+
+  testWidgets('filters contacts by initial letter via dropdown', (tester) async {
+    await tester.pumpWidget(buildApp([
+      buildContact(id: '1', name: 'Alice'),
+      buildContact(id: '2', name: 'Bob'),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bob'), findsNothing);
+    expect(find.widgetWithText(Chip, 'A'), findsOneWidget);
+  });
+
+  testWidgets('clearing contact filter via All restores the list',
+      (tester) async {
+    await tester.pumpWidget(buildApp([
+      buildContact(id: '1', name: 'Alice'),
+      buildContact(id: '2', name: 'Bob'),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bob'), findsNothing);
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bob'), findsOneWidget);
+    expect(find.widgetWithText(Chip, 'A'), findsNothing);
+  });
 }

@@ -147,6 +147,31 @@ void main() {
     expect(urgent.first.title, 'Urgent');
   });
 
+  test('filter by tag', () async {
+    await harness.repository
+        .create(buildTask(title: 'Work', tags: ['work']));
+    await harness.repository.create(buildTask(title: 'Personal'));
+
+    final work = await harness.repository
+        .watchAll(filter: const TaskFilter(tag: 'work'))
+        .first;
+    expect(work.length, 1);
+    expect(work.first.title, 'Work');
+  });
+
+  test('hide done filter removes done tasks', () async {
+    await harness.repository
+        .create(buildTask(title: 'Todo', status: TaskStatus.todo));
+    await harness.repository
+        .create(buildTask(title: 'Done', status: TaskStatus.done));
+
+    final visible = await harness.repository
+        .watchAll(filter: const TaskFilter(hideDone: true))
+        .first;
+    expect(visible.length, 1);
+    expect(visible.first.title, 'Todo');
+  });
+
   test('soft-deleted task is not returned by watchById', () async {
     final task = buildTask(title: 'Gone');
     await harness.repository.create(task);

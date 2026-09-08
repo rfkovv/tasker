@@ -10,6 +10,8 @@ abstract class TaskFilter with _$TaskFilter {
   const factory TaskFilter({
     TaskStatus? status,
     TaskPriority? priority,
+    String? tag,
+    @Default(false) bool hideDone,
   }) = _TaskFilter;
 
   const TaskFilter._();

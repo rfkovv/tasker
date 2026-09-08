@@ -47,6 +47,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get filters => 'Filtry';
 
   @override
+  String get filter => 'Filtruj';
+
+  @override
   String get filterStatus => 'Status';
 
   @override
@@ -54,6 +57,15 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get filterAll => 'Wszystkie';
+
+  @override
+  String get filterTags => 'Tagi';
+
+  @override
+  String get hideDone => 'Ukryj zrobione';
+
+  @override
+  String get noTags => 'Brak tagów';
 
   @override
   String get resetFilters => 'Wyczyść filtry';

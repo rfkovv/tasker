@@ -27,9 +27,17 @@ class TaskRepositoryImpl implements TaskRepository {
       (rows) async {
         final tagMap =
             await _dao.tagsForTasks(rows.map((r) => r.id).toList());
-        return rows
+        final tasks = rows
             .map((row) => _mapper.toDomain(row, tagMap[row.id] ?? const []))
+            .where((task) {
+          if (filter.hideDone && task.status == TaskStatus.done) return false;
+          if (filter.tag != null && !task.tags.contains(filter.tag)) {
+            return false;
+          }
+          return true;
+        })
             .toList();
+        return tasks;
       },
     );
   }

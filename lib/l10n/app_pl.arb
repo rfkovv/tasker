@@ -18,9 +18,13 @@
     }
   },
   "filters": "Filtry",
+  "filter": "Filtruj",
   "filterStatus": "Status",
   "filterPriority": "Priorytet",
   "filterAll": "Wszystkie",
+  "filterTags": "Tagi",
+  "hideDone": "Ukryj zrobione",
+  "noTags": "Brak tagów",
   "resetFilters": "Wyczyść filtry",
   "statusTodo": "Do zrobienia",
   "statusInProgress": "W trakcie",

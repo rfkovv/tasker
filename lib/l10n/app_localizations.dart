@@ -164,6 +164,12 @@ abstract class AppLocalizations {
   /// **'Filters'**
   String get filters;
 
+  /// No description provided for @filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filter;
+
   /// No description provided for @filterStatus.
   ///
   /// In en, this message translates to:
@@ -181,6 +187,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get filterAll;
+
+  /// No description provided for @filterTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get filterTags;
+
+  /// No description provided for @hideDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide done'**
+  String get hideDone;
+
+  /// No description provided for @noTags.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags'**
+  String get noTags;
 
   /// No description provided for @resetFilters.
   ///
