@@ -9,6 +9,7 @@ import '../../data/task_repository_provider.dart';
 import '../../domain/calendar.dart';
 import '../../domain/scheduling.dart';
 import '../../domain/task.dart';
+import '../../domain/task_filter.dart';
 import '../providers/calendar_view_provider.dart';
 import '../providers/task_list_provider.dart';
 import 'day_cell.dart';
@@ -24,8 +25,10 @@ class CalendarPane extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final view = ref.watch(calendarViewProvider);
     final zone = ref.watch(settings_feature.selectedTimeZoneProvider);
-    final filter = ref.watch(taskFilterStateProvider);
-    final tasks = ref.watch(taskListProvider(filter)).value ?? const <Task>[];
+    // The calendar always shows ALL scheduled tasks, independent of the
+    // list pane's filter/sort selection. Filters only affect the list.
+    final tasks =
+        ref.watch(taskListProvider(TaskFilter.none)).value ?? const <Task>[];
     final byDay = tasksByLocalDay(tasks, zone);
     final today = localDay(DateTime.now(), zone);
 

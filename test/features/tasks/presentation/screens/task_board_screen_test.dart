@@ -16,8 +16,13 @@ import 'package:taskmaster/features/tasks/domain/task_filter.dart';
 import 'package:taskmaster/features/tasks/domain/task_priority.dart';
 import 'package:taskmaster/features/tasks/domain/task_repository.dart';
 import 'package:taskmaster/features/tasks/domain/task_status.dart';
+import 'package:taskmaster/features/tasks/presentation/providers/task_list_provider.dart';
 import 'package:taskmaster/features/tasks/presentation/screens/task_board_screen.dart';
 import 'package:taskmaster/features/tasks/presentation/screens/task_list_screen.dart';
+import 'package:taskmaster/features/tasks/presentation/widgets/calendar_pane.dart';
+import 'package:taskmaster/features/tasks/presentation/widgets/calendar_task_tile.dart';
+import 'package:taskmaster/features/tasks/presentation/widgets/day_cell.dart';
+import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -36,9 +41,10 @@ class CapturingTaskRepository implements TaskRepository {
         return false;
       }
       if (filter.hideDone && t.status == TaskStatus.done) return false;
+      if (filter.noDueDate && t.dueDate != null) return false;
       return true;
     }).toList();
-    return Stream.value(filtered);
+    return Stream.value(sortTasks(filtered, filter.sort));
   }
 
   @override
@@ -352,5 +358,48 @@ void main() {
     await tester.tap(find.text('Month'));
     await tester.pumpAndSettle();
     expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+  });
+
+  testWidgets('no-due-date filter does not hide the calendar pane',
+      (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final repo = CapturingTaskRepository([
+      buildTask(id: 'scheduled', title: 'Scheduled', dueDate: DateTime.utc(now.year, now.month, 5, 5, 0)),
+      buildTask(id: 'undated', title: 'Undated'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Calendar pane present before filtering.
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byType(DayCell), findsWidgets);
+
+    // Apply the "No due date" list filter directly (as the dropdown does).
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TaskBoardScreen)),
+    );
+    container
+        .read(taskFilterStateProvider.notifier)
+        .setFilter(TaskFilter(noDueDate: true));
+    await tester.pumpAndSettle();
+
+    // Confirm the filter actually took effect in the LIST pane (scheduled
+    // tile gone from the list, only the undated one remains).
+    final listTiles = tester
+        .widgetList<TaskTile>(find.byType(TaskTile))
+        .map((t) => t.task.title)
+        .toList();
+    expect(listTiles, ['Undated']);
+
+    // The two-pane layout and calendar grid must remain visible regardless
+    // of the list filter — the filter only changes the list pane contents.
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byType(DayCell), findsWidgets);
+    expect(find.byType(CalendarTaskTile), findsOneWidget); // scheduled task still on the grid
   });
 }
