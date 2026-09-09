@@ -23,4 +23,14 @@ class AppSettings extends _$AppSettings {
     await ref.read(appSettingsRepositoryProvider).saveLanguage(language);
     state = state.copyWith(language: language);
   }
+
+  Future<void> setDefaultDueTime(String value) async {
+    await ref.read(appSettingsRepositoryProvider).saveDefaultDueTime(value);
+    state = state.copyWith(defaultDueTime: value);
+  }
+
+  Future<void> setTimezone(String value) async {
+    await ref.read(appSettingsRepositoryProvider).saveTimezone(value);
+    state = state.copyWith(timezoneName: value);
+  }
 }

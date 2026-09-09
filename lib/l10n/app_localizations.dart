@@ -619,6 +619,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Polish'**
   String get languagePolish;
+
+  /// No description provided for @settingsDefaultDueTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Default due time'**
+  String get settingsDefaultDueTime;
+
+  /// No description provided for @settingsTimezone.
+  ///
+  /// In en, this message translates to:
+  /// **'Time zone'**
+  String get settingsTimezone;
+
+  /// No description provided for @calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendar;
+
+  /// No description provided for @calendarMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get calendarMonth;
+
+  /// No description provided for @calendarWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get calendarWeek;
+
+  /// No description provided for @calendarQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarter'**
+  String get calendarQuarter;
+
+  /// No description provided for @dayMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get dayMon;
+
+  /// No description provided for @dayTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get dayTue;
+
+  /// No description provided for @dayWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get dayWed;
+
+  /// No description provided for @dayThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get dayThu;
+
+  /// No description provided for @dayFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get dayFri;
+
+  /// No description provided for @daySat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get daySat;
+
+  /// No description provided for @daySun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get daySun;
+
+  /// No description provided for @dragToScheduleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag a task onto a day to schedule it'**
+  String get dragToScheduleHint;
 }
 
 class _AppLocalizationsDelegate

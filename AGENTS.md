@@ -3,44 +3,50 @@
 PROJECT: TaskMaster (Flutter menedżer zadań)
 ARCHITECTURE: See ARCHITECTURE.md — follow it strictly, no deviations without approval.
 
-CURRENT PHASE: Stage 4 — Task detail screen, subtasks, comments
+CURRENT PHASE: Stage 5 — Calendar view + drag & drop scheduling
 
-STAGE 4 SCOPE (do NOT exceed):
-- Ekran detali zadania (/tasks/:id — routing istnieje, ekran nowy):
-  nagłówek (tytuł, status, priorytet), pola editable
-  (description, priority, dueDate z godziną), sekcje: subtasks,
-  komentarze, Relevant Persons; akcje na dole (edit, status toggle)
-- Subtasks: checklist w ramach zadania — dodawanie, odhaczanie
-  (checkbox), usuwanie; zliczanie postępu na kafelku listy ("x/y")
-- Komentarze: lista chronologiczna z timestampami; dodawanie przez
-  pole na dole sekcji (zgodnie z layout rules); usuwanie SOFT delete
-  (deletedAt) — spójnie z resztą systemu; BEZ pola autora (model
-  użytkownika dopiero przy sync)
-- Integracja: kliknięcie kafelka na liście → ekran detali
-  (nie bezpośrednio do edycji); edit = przycisk na ekranie detali
-- DAO: SubtasksDao + CommentsDao w local_db (tabele już w schemacie)
-- Feature-first: rozszerzenie features/tasks (domain: Subtask,
-  Comment, repozytorium), mirror konwencji istniejącego kodu
+STAGE 5 SCOPE (do NOT exceed):
+- UKŁAD: ekran zadań dzieli się na dwie strefy obok siebie:
+  lewa = istniejąca lista zadań (bez zmian funkcjonalnych),
+  prawa = siatka kalendarza. Backlog = istniejąca lista zadań
+  (NIE tworzymy osobnego UI "unscheduled backlog")
+- KALENDARZ: siatka miesięczna; zadania z dueDate jako kafelki
+  w komórkach dni; przełącznik widoku tydzień/miesiąc/kwartał
+  (domyślnie miesiąc)
+- DRAG & DROP (pełna symetria):
+  a) zadanie bez terminu z listy → komórka dnia = ustaw dueDate
+     (godzina domyślna z ustawień)
+  b) kafelek na kalendarzu → inna komórka = zmiana dueDate
+  c) kafelek z kalendarza → lista (backlog) = dueDate NULL
+- Termin zmienia się WYŁĄCZNIE przez drag & drop — zero ręcznego
+  wpisywania daty w tym widoku (edycja godziny zostaje w formularzu)
+- Ustawienia (etap 2.5): klucz default_due_time (startowo 07:00,
+  edytowalny), selektor strefy czasowej (timezone-aware: porównania
+  i zapisy UTC, wyświetlanie wg strefy z ustawień)
+- Deadliny widoczne na kafelku kalendarza = tytuł + godzina;
+  overdue styling reused
 
-OUT OF SCOPE:
-- kalendarz, Kanban, Gantt, drag&drop, lokalizacje kontaktów,
-  sync, buildy Windows/Android, notyfikacje
+OUT OF SCOPE: nawigacja na żywo, notyfikacje, edycja zadania z
+kafelek kalendarza (otwieranie detali — tak), kwartał poza prostą
+siatką, cykliczne zadania
 
 IMPLEMENTATION ORDER:
-1. Domain: Subtask, Comment, interfejsy repozytorium (watch, create,
-   toggle, soft delete), mappery
-2. DAO: SubtasksDao, CommentsDao (join per taskId, in-memory drift tests)
-3. Detail screen: sekcje subtasks + komentarze + Relevant Persons,
-   edycja pól, akcje na dole
-4. List integration: kliknięcie → detale, progress "x/y" na kafelku
-5. i18n: wszystkie nowe stringi przez AppLocalizations (PL+EN)
-6. Tests: domain unit, DAO repository, widget test ekranu detali
-   i progresu na kafelku
+1. Layout: dwukolumnowy ekran zadań (lista | kalendarz) + przełącznik
+   miesiąc/tydzień/kwartał (nawigacja bez zmiany destynacji)
+2. Rendering: zadania z dueDate na siatce (group by day, strefa-aware)
+3. DnD: LongPressDraggable/Draggable na kafelkach listy i siatki,
+   DragTarget na komórkach + lista jako target (zdjęcie terminu)
+4. Logika domeny: mapowanie drop→dueDate (data komórki + default
+   time + timezone), testy jednostkowe (strefy czasowe!)
+5. i18n: nowe stringi PL/EN
+6. Tests: unit (date mapping, strefy), widget (drop = dueDate update,
+   drop na listę = null), analyze per warstwa
 
 COMPLETION CRITERIA:
-- Zadanie ma pełny ekran detali z checklistą subtasks i komentarzami;
-  postęp "x/y" widoczny na liście; komentarze i subtasks przetrwają
-  restart; usunięte komentarze nie wracają; wszystkie testy zielone
+- Drag zadania z listy na dzień ustawia termin (widoczny na kafelku
+  i w formularzu z godziną 07:00); przeciągnięcie między dniami
+  zmienia termin; zwrot na listę usuwa termin; przełącznik
+  tydzień/miesiąc/kwartał działa; wszystko przetrwa restart
 
 RULES:
 1. Feature-first structure; mirror conventions of features/tasks/ exactly

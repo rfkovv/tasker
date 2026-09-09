@@ -10,14 +10,20 @@ part of 'subtask_progress_by_task_provider.dart';
 // ignore_for_file: type=lint, type=warning
 /// Maps each visible task id to its subtask completion progress ("x/y").
 ///
-/// Only tasks that actually have subtasks are present in the map.
+/// Derives progress from the same domain [Subtask] list (via
+/// [subtaskListProvider]) that the task detail screen renders, so both
+/// surfaces always agree. Only tasks that actually have subtasks are
+/// present in the map.
 
 @ProviderFor(subtaskProgressByTask)
 final subtaskProgressByTaskProvider = SubtaskProgressByTaskFamily._();
 
 /// Maps each visible task id to its subtask completion progress ("x/y").
 ///
-/// Only tasks that actually have subtasks are present in the map.
+/// Derives progress from the same domain [Subtask] list (via
+/// [subtaskListProvider]) that the task detail screen renders, so both
+/// surfaces always agree. Only tasks that actually have subtasks are
+/// present in the map.
 
 final class SubtaskProgressByTaskProvider
     extends
@@ -31,7 +37,10 @@ final class SubtaskProgressByTaskProvider
         $FutureProvider<Map<String, SubtaskProgress>> {
   /// Maps each visible task id to its subtask completion progress ("x/y").
   ///
-  /// Only tasks that actually have subtasks are present in the map.
+  /// Derives progress from the same domain [Subtask] list (via
+  /// [subtaskListProvider]) that the task detail screen renders, so both
+  /// surfaces always agree. Only tasks that actually have subtasks are
+  /// present in the map.
   SubtaskProgressByTaskProvider._({
     required SubtaskProgressByTaskFamily super.from,
     required TaskFilter super.argument,
@@ -77,11 +86,14 @@ final class SubtaskProgressByTaskProvider
 }
 
 String _$subtaskProgressByTaskHash() =>
-    r'cec19898d172ad0664df183d33ea5f1ed97b174b';
+    r'735038e3b8c7d9dee57e66925a24cf034af50d81';
 
 /// Maps each visible task id to its subtask completion progress ("x/y").
 ///
-/// Only tasks that actually have subtasks are present in the map.
+/// Derives progress from the same domain [Subtask] list (via
+/// [subtaskListProvider]) that the task detail screen renders, so both
+/// surfaces always agree. Only tasks that actually have subtasks are
+/// present in the map.
 
 final class SubtaskProgressByTaskFamily extends $Family
     with
@@ -100,7 +112,10 @@ final class SubtaskProgressByTaskFamily extends $Family
 
   /// Maps each visible task id to its subtask completion progress ("x/y").
   ///
-  /// Only tasks that actually have subtasks are present in the map.
+  /// Derives progress from the same domain [Subtask] list (via
+  /// [subtaskListProvider]) that the task detail screen renders, so both
+  /// surfaces always agree. Only tasks that actually have subtasks are
+  /// present in the map.
 
   SubtaskProgressByTaskProvider call(TaskFilter filter) =>
       SubtaskProgressByTaskProvider._(argument: filter, from: this);

@@ -103,5 +103,19 @@
   "themeDark": "Ciemny",
   "settingsLanguage": "Język",
   "languageEnglish": "Angielski",
-  "languagePolish": "Polski"
+  "languagePolish": "Polski",
+  "settingsDefaultDueTime": "Domyślny czas terminu",
+  "settingsTimezone": "Strefa czasowa",
+  "calendar": "Kalendarz",
+  "calendarMonth": "Miesiąc",
+  "calendarWeek": "Tydzień",
+  "calendarQuarter": "Kwartał",
+  "dayMon": "pon",
+  "dayTue": "wt",
+  "dayWed": "śr",
+  "dayThu": "czw",
+  "dayFri": "pt",
+  "daySat": "sob",
+  "daySun": "nd",
+  "dragToScheduleHint": "Przeciągnij zadanie na dzień, aby je zaplanować"
 }

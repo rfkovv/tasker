@@ -275,4 +275,47 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get languagePolish => 'Polski';
+
+  @override
+  String get settingsDefaultDueTime => 'Domyślny czas terminu';
+
+  @override
+  String get settingsTimezone => 'Strefa czasowa';
+
+  @override
+  String get calendar => 'Kalendarz';
+
+  @override
+  String get calendarMonth => 'Miesiąc';
+
+  @override
+  String get calendarWeek => 'Tydzień';
+
+  @override
+  String get calendarQuarter => 'Kwartał';
+
+  @override
+  String get dayMon => 'pon';
+
+  @override
+  String get dayTue => 'wt';
+
+  @override
+  String get dayWed => 'śr';
+
+  @override
+  String get dayThu => 'czw';
+
+  @override
+  String get dayFri => 'pt';
+
+  @override
+  String get daySat => 'sob';
+
+  @override
+  String get daySun => 'nd';
+
+  @override
+  String get dragToScheduleHint =>
+      'Przeciągnij zadanie na dzień, aby je zaplanować';
 }

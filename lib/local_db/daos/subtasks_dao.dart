@@ -48,29 +48,6 @@ class SubtasksDao extends DatabaseAccessor<AppDatabase>
     return (max ?? 0) + 1;
   }
 
-  Future<Map<String, ({int done, int total})>> progressForTasks(
-    List<String> taskIds,
-  ) async {
-    if (taskIds.isEmpty) return const {};
-    final taskIdCol = subtasks.taskId;
-    final countExpr = subtasks.id.count();
-    final doneExpr = subtasks.isCompleted.equals(true).count();
-    final rows = await (selectOnly(subtasks)
-          ..addColumns([taskIdCol, countExpr, doneExpr])
-          ..where(taskIdCol.isIn(taskIds))
-          ..groupBy([taskIdCol]))
-        .get();
-    final result = <String, ({int done, int total})>{};
-    for (final row in rows) {
-      final taskId = row.read(taskIdCol)!;
-      result[taskId] = (
-        done: row.read(doneExpr) ?? 0,
-        total: row.read(countExpr) ?? 0,
-      );
-    }
-    return result;
-  }
-
   Future<Subtask> createSubtask({
     required String taskId,
     required String title,

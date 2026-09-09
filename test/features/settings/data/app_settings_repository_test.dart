@@ -22,6 +22,8 @@ void main() {
 
     expect(settings.themePreference, AppThemePreference.system);
     expect(settings.language, AppLanguage.en);
+    expect(settings.defaultDueTime, '07:00');
+    expect(settings.timezoneName, '');
   });
 
   test('saveThemePreference persists and loads back', () async {
@@ -49,5 +51,19 @@ void main() {
     final settings = await reloaded.load();
     expect(settings.themePreference, AppThemePreference.light);
     expect(settings.language, AppLanguage.pl);
+  });
+
+  test('saveDefaultDueTime persists and loads back', () async {
+    await repository.saveDefaultDueTime('09:45');
+
+    final settings = await repository.load();
+    expect(settings.defaultDueTime, '09:45');
+  });
+
+  test('saveTimezone persists and loads back', () async {
+    await repository.saveTimezone('Europe/Warsaw');
+
+    final settings = await repository.load();
+    expect(settings.timezoneName, 'Europe/Warsaw');
   });
 }

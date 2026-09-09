@@ -13,6 +13,7 @@ import '../../domain/task_status.dart';
 import '../providers/subtask_progress_by_task_provider.dart';
 import '../providers/task_contacts_by_task_provider.dart';
 import '../providers/task_list_provider.dart';
+import '../widgets/calendar_task_tile.dart';
 import '../widgets/task_priority_badge.dart';
 import '../widgets/task_tile.dart';
 
@@ -118,7 +119,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                           final links =
                               contactsByTask[task.id] ??
                               const <contacts_feature.Contact>[];
-                          return TaskTile(
+                          final tile = TaskTile(
                             task: task,
                             contacts: links,
                             subtaskProgress: subtaskProgressByTask[task.id],
@@ -131,6 +132,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                               );
                             },
                           );
+                          return DraggableTask(task: task, child: tile);
                         },
                       ),
                     ),

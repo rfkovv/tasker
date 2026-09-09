@@ -7,6 +7,7 @@ import 'package:taskmaster/features/settings/domain/app_settings_repository.dart
 import 'package:taskmaster/features/settings/presentation/providers/app_settings_provider.dart';
 import 'package:taskmaster/features/settings/presentation/screens/settings_screen.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
+import 'package:taskmaster/shared/timezone_util.dart';
 
 class _FakeSettingsRepository implements AppSettingsRepository {
   _FakeSettingsRepository(this._data);
@@ -26,6 +27,16 @@ class _FakeSettingsRepository implements AppSettingsRepository {
   Future<void> saveLanguage(AppLanguage language) async {
     savedLanguages.add(language);
     _data = _data.copyWith(language: language);
+  }
+
+  @override
+  Future<void> saveDefaultDueTime(String value) async {
+    _data = _data.copyWith(defaultDueTime: value);
+  }
+
+  @override
+  Future<void> saveTimezone(String value) async {
+    _data = _data.copyWith(timezoneName: value);
   }
 }
 
@@ -72,6 +83,8 @@ Widget buildApp(AppSettingsRepository repository) {
 }
 
 void main() {
+  setUpAll(initAppTimeZones);
+
   testWidgets('shows theme and language sections', (tester) async {
     await tester.pumpWidget(buildApp(_FakeSettingsRepository(
       const AppSettingsData(),
@@ -121,5 +134,17 @@ void main() {
     expect(find.text('Motyw'), findsOneWidget);
     expect(find.text('Język'), findsOneWidget);
     expect(repo.savedLanguages, [AppLanguage.pl]);
+  });
+
+  testWidgets('Schedule settings show default due time and timezone',
+      (tester) async {
+    await tester.pumpWidget(buildApp(_FakeSettingsRepository(
+      const AppSettingsData(),
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Default due time'), findsOneWidget);
+    expect(find.text('07:00'), findsOneWidget);
+    expect(find.text('Time zone'), findsOneWidget);
   });
 }

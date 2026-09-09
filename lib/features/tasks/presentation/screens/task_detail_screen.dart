@@ -329,14 +329,14 @@ class _SubtasksSection extends StatelessWidget {
       children: [
         subtasksAsync.when(
           data: (subtasks) {
-            final done = subtasks.where((s) => s.isCompleted).length;
+            final progress = SubtaskProgress.fromSubtasks(subtasks);
             return Row(
               children: [
                 Text(l10n.subtasks, style: theme.textTheme.titleSmall),
                 if (subtasks.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Text(
-                    l10n.subtaskProgress(done, subtasks.length),
+                    l10n.subtaskProgress(progress.done, progress.total),
                     style: theme.textTheme.labelMedium
                         ?.copyWith(color: theme.colorScheme.outline),
                   ),

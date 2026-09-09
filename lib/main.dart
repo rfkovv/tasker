@@ -5,9 +5,11 @@ import 'app/app_router.dart';
 import 'features/settings/domain/app_settings_data.dart';
 import 'features/settings/presentation/providers/app_settings_provider.dart';
 import 'l10n/app_localizations.dart';
+import 'shared/timezone_util.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  initAppTimeZones();
 
   final container = ProviderContainer();
   try {

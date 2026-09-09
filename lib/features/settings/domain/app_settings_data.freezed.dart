@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppSettingsData {
 
- AppThemePreference get themePreference; AppLanguage get language;
+ AppThemePreference get themePreference; AppLanguage get language; String get defaultDueTime; String get timezoneName;
 /// Create a copy of AppSettingsData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $AppSettingsDataCopyWith<AppSettingsData> get copyWith => _$AppSettingsDataCopyW
 @override
 bool operator ==(Object other) {
   final _this = this as AppSettingsData;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettingsData&&(identical(other.themePreference, _this.themePreference) || other.themePreference == _this.themePreference)&&(identical(other.language, _this.language) || other.language == _this.language));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettingsData&&(identical(other.themePreference, _this.themePreference) || other.themePreference == _this.themePreference)&&(identical(other.language, _this.language) || other.language == _this.language)&&(identical(other.defaultDueTime, _this.defaultDueTime) || other.defaultDueTime == _this.defaultDueTime)&&(identical(other.timezoneName, _this.timezoneName) || other.timezoneName == _this.timezoneName));
 }
 
 
 @override
 int get hashCode {
   final _this = this as AppSettingsData;
-  return Object.hash(runtimeType,_this.themePreference,_this.language);
+  return Object.hash(runtimeType,_this.themePreference,_this.language,_this.defaultDueTime,_this.timezoneName);
 }
 
 @override
 String toString() {
   final _this = this as AppSettingsData;
-  return 'AppSettingsData(themePreference: ${_this.themePreference}, language: ${_this.language})';
+  return 'AppSettingsData(themePreference: ${_this.themePreference}, language: ${_this.language}, defaultDueTime: ${_this.defaultDueTime}, timezoneName: ${_this.timezoneName})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $AppSettingsDataCopyWith<$Res>  {
   factory $AppSettingsDataCopyWith(AppSettingsData value, $Res Function(AppSettingsData) _then) = _$AppSettingsDataCopyWithImpl;
 @useResult
 $Res call({
- AppThemePreference themePreference, AppLanguage language
+ AppThemePreference themePreference, AppLanguage language, String defaultDueTime, String timezoneName
 });
 
 
@@ -68,11 +68,13 @@ class _$AppSettingsDataCopyWithImpl<$Res>
 
 /// Create a copy of AppSettingsData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? themePreference = null,Object? language = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? themePreference = null,Object? language = null,Object? defaultDueTime = null,Object? timezoneName = null,}) {
   return _then(AppSettingsData(
 themePreference: null == themePreference ? _self.themePreference : themePreference // ignore: cast_nullable_to_non_nullable
 as AppThemePreference,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
-as AppLanguage,
+as AppLanguage,defaultDueTime: null == defaultDueTime ? _self.defaultDueTime : defaultDueTime // ignore: cast_nullable_to_non_nullable
+as String,timezoneName: null == timezoneName ? _self.timezoneName : timezoneName // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -157,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AppThemePreference themePreference,  AppLanguage language)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AppThemePreference themePreference,  AppLanguage language,  String defaultDueTime,  String timezoneName)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppSettingsData() when $default != null:
-return $default(_that.themePreference,_that.language);case _:
+return $default(_that.themePreference,_that.language,_that.defaultDueTime,_that.timezoneName);case _:
   return orElse();
 
 }
@@ -178,10 +180,10 @@ return $default(_that.themePreference,_that.language);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AppThemePreference themePreference,  AppLanguage language)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AppThemePreference themePreference,  AppLanguage language,  String defaultDueTime,  String timezoneName)  $default,) {final _that = this;
 switch (_that) {
 case _AppSettingsData():
-return $default(_that.themePreference,_that.language);case _:
+return $default(_that.themePreference,_that.language,_that.defaultDueTime,_that.timezoneName);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +200,10 @@ return $default(_that.themePreference,_that.language);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AppThemePreference themePreference,  AppLanguage language)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AppThemePreference themePreference,  AppLanguage language,  String defaultDueTime,  String timezoneName)?  $default,) {final _that = this;
 switch (_that) {
 case _AppSettingsData() when $default != null:
-return $default(_that.themePreference,_that.language);case _:
+return $default(_that.themePreference,_that.language,_that.defaultDueTime,_that.timezoneName);case _:
   return null;
 
 }
@@ -213,11 +215,13 @@ return $default(_that.themePreference,_that.language);case _:
 
 
 class _AppSettingsData extends AppSettingsData {
-  const _AppSettingsData({this.themePreference = AppThemePreference.system, this.language = AppLanguage.en}): super._();
+  const _AppSettingsData({this.themePreference = AppThemePreference.system, this.language = AppLanguage.en, this.defaultDueTime = '07:00', this.timezoneName = ''}): super._();
   
 
 @override@JsonKey() final  AppThemePreference themePreference;
 @override@JsonKey() final  AppLanguage language;
+@override@JsonKey() final  String defaultDueTime;
+@override@JsonKey() final  String timezoneName;
 
 /// Create a copy of AppSettingsData
 /// with the given fields replaced by the non-null parameter values.
@@ -229,18 +233,18 @@ _$AppSettingsDataCopyWith<_AppSettingsData> get copyWith => __$AppSettingsDataCo
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettingsData&&(identical(other.themePreference, themePreference) || other.themePreference == themePreference)&&(identical(other.language, language) || other.language == language));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettingsData&&(identical(other.themePreference, themePreference) || other.themePreference == themePreference)&&(identical(other.language, language) || other.language == language)&&(identical(other.defaultDueTime, defaultDueTime) || other.defaultDueTime == defaultDueTime)&&(identical(other.timezoneName, timezoneName) || other.timezoneName == timezoneName));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,themePreference,language);
+    return Object.hash(runtimeType,themePreference,language,defaultDueTime,timezoneName);
 }
 
 @override
 String toString() {
-    return 'AppSettingsData(themePreference: $themePreference, language: $language)';
+    return 'AppSettingsData(themePreference: $themePreference, language: $language, defaultDueTime: $defaultDueTime, timezoneName: $timezoneName)';
 }
 
 
@@ -251,7 +255,7 @@ abstract mixin class _$AppSettingsDataCopyWith<$Res> implements $AppSettingsData
   factory _$AppSettingsDataCopyWith(_AppSettingsData value, $Res Function(_AppSettingsData) _then) = __$AppSettingsDataCopyWithImpl;
 @override @useResult
 $Res call({
- AppThemePreference themePreference, AppLanguage language
+ AppThemePreference themePreference, AppLanguage language, String defaultDueTime, String timezoneName
 });
 
 
@@ -268,11 +272,13 @@ class __$AppSettingsDataCopyWithImpl<$Res>
 
 /// Create a copy of AppSettingsData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? themePreference = null,Object? language = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? themePreference = null,Object? language = null,Object? defaultDueTime = null,Object? timezoneName = null,}) {
   return _then(_AppSettingsData(
 themePreference: null == themePreference ? _self.themePreference : themePreference // ignore: cast_nullable_to_non_nullable
 as AppThemePreference,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
-as AppLanguage,
+as AppLanguage,defaultDueTime: null == defaultDueTime ? _self.defaultDueTime : defaultDueTime // ignore: cast_nullable_to_non_nullable
+as String,timezoneName: null == timezoneName ? _self.timezoneName : timezoneName // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

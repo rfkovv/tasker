@@ -274,4 +274,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languagePolish => 'Polish';
+
+  @override
+  String get settingsDefaultDueTime => 'Default due time';
+
+  @override
+  String get settingsTimezone => 'Time zone';
+
+  @override
+  String get calendar => 'Calendar';
+
+  @override
+  String get calendarMonth => 'Month';
+
+  @override
+  String get calendarWeek => 'Week';
+
+  @override
+  String get calendarQuarter => 'Quarter';
+
+  @override
+  String get dayMon => 'Mon';
+
+  @override
+  String get dayTue => 'Tue';
+
+  @override
+  String get dayWed => 'Wed';
+
+  @override
+  String get dayThu => 'Thu';
+
+  @override
+  String get dayFri => 'Fri';
+
+  @override
+  String get daySat => 'Sat';
+
+  @override
+  String get daySun => 'Sun';
+
+  @override
+  String get dragToScheduleHint => 'Drag a task onto a day to schedule it';
 }

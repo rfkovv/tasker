@@ -103,5 +103,19 @@
   "themeDark": "Dark",
   "settingsLanguage": "Language",
   "languageEnglish": "English",
-  "languagePolish": "Polish"
+  "languagePolish": "Polish",
+  "settingsDefaultDueTime": "Default due time",
+  "settingsTimezone": "Time zone",
+  "calendar": "Calendar",
+  "calendarMonth": "Month",
+  "calendarWeek": "Week",
+  "calendarQuarter": "Quarter",
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "daySun": "Sun",
+  "dragToScheduleHint": "Drag a task onto a day to schedule it"
 }

@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 import '../features/contacts/presentation/screens/contact_form_screen.dart';
 import '../features/contacts/presentation/screens/contact_list_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/tasks/presentation/screens/task_board_screen.dart';
 import '../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../features/tasks/presentation/screens/task_form_screen.dart';
-import '../features/tasks/presentation/screens/task_list_screen.dart';
 import 'app_shell.dart';
 
 final appRouter = GoRouter(
@@ -16,7 +16,7 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) => TaskListScreen(
+          builder: (context, state) => TaskBoardScreen(
             onOpenTask: (id) => context.push('/tasks/$id'),
           ),
         ),

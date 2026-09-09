@@ -68,12 +68,13 @@ class FakeTaskRepository implements TaskRepository {
 }
 
 class FakeSubtaskRepository implements SubtaskRepository {
-  FakeSubtaskRepository(this.progress);
+  FakeSubtaskRepository(this._subtasksByTask);
 
-  final Map<String, SubtaskProgress> progress;
+  final Map<String, List<Subtask>> _subtasksByTask;
 
   @override
-  Stream<List<Subtask>> watchByTask(String taskId) => const Stream.empty();
+  Stream<List<Subtask>> watchByTask(String taskId) =>
+      Stream.value(_subtasksByTask[taskId] ?? const []);
 
   @override
   Future<Subtask> create({required String taskId, required String title}) async {
@@ -85,16 +86,6 @@ class FakeSubtaskRepository implements SubtaskRepository {
 
   @override
   Future<void> delete(String id) async {}
-
-  @override
-  Future<Map<String, SubtaskProgress>> progressForTasks(
-    List<String> taskIds,
-  ) async {
-    return {
-      for (final id in taskIds)
-        if (progress[id] != null && !progress[id]!.isEmpty) id: progress[id]!,
-    };
-  }
 }
 
 class FakeContactRepository implements ContactRepository {
@@ -156,13 +147,13 @@ Task buildTask({
 Widget buildApp(
   List<Task> tasks, {
   ValueChanged<String>? onOpenTask,
-  Map<String, SubtaskProgress> subtaskProgress = const {},
+  Map<String, List<Subtask>> subtasksByTask = const {},
 }) {
   return ProviderScope(
     overrides: [
       taskRepositoryProvider.overrideWithValue(FakeTaskRepository(tasks)),
       subtaskRepositoryProvider
-          .overrideWithValue(FakeSubtaskRepository(subtaskProgress)),
+          .overrideWithValue(FakeSubtaskRepository(subtasksByTask)),
       contacts_feature.contactRepositoryProvider
           .overrideWithValue(FakeContactRepository()),
     ],
@@ -362,22 +353,34 @@ void main() {
   });
 
   testWidgets('shows subtask progress x/y on the tile', (tester) async {
+    final now = DateTime.now();
+    final subtasks = [
+      for (var i = 0; i < 5; i++)
+        Subtask(
+          id: 's$i',
+          taskId: '1',
+          title: 'Subtask $i',
+          isCompleted: i < 3,
+          createdAt: now,
+          updatedAt: now,
+        ),
+    ];
     await tester.pumpWidget(buildApp(
       [buildTask(id: '1', title: 'Task with subtasks')],
-      subtaskProgress: {
-        '1': const SubtaskProgress(done: 2, total: 3),
-      },
+      subtasksByTask: {'1': subtasks},
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('2/3'), findsOneWidget);
+    // 5 subtasks, 3 checked → completed/total (not total/total).
+    expect(find.text('3/5'), findsOneWidget);
+    expect(find.text('5/5'), findsNothing);
   });
 
   testWidgets('does not show progress when task has no subtasks',
       (tester) async {
     await tester.pumpWidget(buildApp(
       [buildTask(id: '1', title: 'Plain task')],
-      subtaskProgress: const {},
+      subtasksByTask: const {},
     ));
     await tester.pumpAndSettle();
 

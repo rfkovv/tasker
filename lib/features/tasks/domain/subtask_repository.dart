@@ -10,7 +10,4 @@ abstract class SubtaskRepository {
   Future<void> toggle(String id, {required bool isCompleted});
 
   Future<void> delete(String id);
-
-  /// Returns completion progress keyed by task id for the given tasks.
-  Future<Map<String, SubtaskProgress>> progressForTasks(List<String> taskIds);
 }

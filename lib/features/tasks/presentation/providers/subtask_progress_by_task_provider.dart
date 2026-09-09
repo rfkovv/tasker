@@ -1,15 +1,18 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../data/subtask_repository_provider.dart';
 import '../../domain/subtask.dart';
 import '../../domain/task_filter.dart';
+import 'subtask_list_provider.dart';
 import 'task_list_provider.dart';
 
 part 'subtask_progress_by_task_provider.g.dart';
 
 /// Maps each visible task id to its subtask completion progress ("x/y").
 ///
-/// Only tasks that actually have subtasks are present in the map.
+/// Derives progress from the same domain [Subtask] list (via
+/// [subtaskListProvider]) that the task detail screen renders, so both
+/// surfaces always agree. Only tasks that actually have subtasks are
+/// present in the map.
 @riverpod
 Future<Map<String, SubtaskProgress>> subtaskProgressByTask(
   Ref ref,
@@ -17,12 +20,12 @@ Future<Map<String, SubtaskProgress>> subtaskProgressByTask(
 ) async {
   final tasks = await ref.watch(taskListProvider(filter).future);
   final ids = tasks.map((t) => t.id).toList();
-  if (ids.isEmpty) return const {};
 
-  final progress =
-      await ref.watch(subtaskRepositoryProvider).progressForTasks(ids);
-  return {
-    for (final entry in progress.entries)
-      if (!entry.value.isEmpty) entry.key: entry.value,
-  };
+  final result = <String, SubtaskProgress>{};
+  for (final id in ids) {
+    final subtasks = await ref.watch(subtaskListProvider(id).future);
+    if (subtasks.isEmpty) continue;
+    result[id] = SubtaskProgress.fromSubtasks(subtasks);
+  }
+  return result;
 }

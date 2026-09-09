@@ -166,13 +166,6 @@ class FakeSubtaskRepository implements SubtaskRepository {
     _subtasks.remove(id);
     _currentSnapshot();
   }
-
-  @override
-  Future<Map<String, SubtaskProgress>> progressForTasks(
-    List<String> taskIds,
-  ) async {
-    return const {};
-  }
 }
 
 class FakeCommentRepository implements CommentRepository {

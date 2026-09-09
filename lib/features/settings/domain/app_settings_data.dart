@@ -40,6 +40,8 @@ abstract class AppSettingsData with _$AppSettingsData {
   const factory AppSettingsData({
     @Default(AppThemePreference.system) AppThemePreference themePreference,
     @Default(AppLanguage.en) AppLanguage language,
+    @Default('07:00') String defaultDueTime,
+    @Default('') String timezoneName,
   }) = _AppSettingsData;
 
   const AppSettingsData._();

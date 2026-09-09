@@ -34,17 +34,4 @@ class SubtaskRepositoryImpl implements SubtaskRepository {
   Future<void> delete(String id) async {
     await _dao.deleteSubtask(id);
   }
-
-  @override
-  Future<Map<String, SubtaskProgress>> progressForTasks(
-    List<String> taskIds,
-  ) async {
-    final rows = await _dao.progressForTasks(taskIds);
-    return rows.map(
-      (taskId, p) => MapEntry(
-        taskId,
-        SubtaskProgress(done: p.done, total: p.total),
-      ),
-    );
-  }
 }

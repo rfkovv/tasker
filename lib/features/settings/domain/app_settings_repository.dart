@@ -6,4 +6,8 @@ abstract class AppSettingsRepository {
   Future<void> saveThemePreference(AppThemePreference theme);
 
   Future<void> saveLanguage(AppLanguage language);
+
+  Future<void> saveDefaultDueTime(String value);
+
+  Future<void> saveTimezone(String value);
 }
