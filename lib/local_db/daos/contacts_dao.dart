@@ -54,6 +54,13 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     return rows.map((r) => r.readTable(contacts)).toList();
   }
 
+  Future<List<String>> taskIdsForContact(String contactId) async {
+    final rows = await (select(taskContacts)
+          ..where((tc) => tc.contactId.equals(contactId)))
+        .get();
+    return rows.map((r) => r.taskId).toList();
+  }
+
   Future<Map<String, List<Contact>>> contactsForTasks(List<String> taskIds) {
     if (taskIds.isEmpty) return Future.value(const {});
     return transaction(() async {

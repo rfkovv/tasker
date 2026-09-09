@@ -14,7 +14,11 @@ part 'tasks_dao.g.dart';
 class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   TasksDao(super.db);
 
-  Stream<List<Task>> watchAllTasks({String? status, String? priority}) {
+  Stream<List<Task>> watchAllTasks({
+    String? status,
+    String? priority,
+    String? titleLike,
+  }) {
     var query = select(tasks)..where((t) => t.deletedAt.isNull());
 
     if (status != null) {
@@ -22,6 +26,10 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
     }
     if (priority != null) {
       query = query..where((t) => t.priority.equals(priority));
+    }
+    if (titleLike != null) {
+      final pattern = '%$titleLike%';
+      query = query..where((t) => t.title.lower().like(pattern));
     }
 
     query = query..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);

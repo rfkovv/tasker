@@ -172,6 +172,47 @@ void main() {
     expect(visible.first.title, 'Todo');
   });
 
+  test('titleQuery filters titles case-insensitively (LIKE)', () async {
+    await harness.repository.create(buildTask(title: 'Buy milk'));
+    await harness.repository.create(buildTask(title: 'BUY juice'));
+    await harness.repository.create(buildTask(title: 'Shopping'));
+
+    final results = await harness.repository
+        .watchAll(filter: const TaskFilter(titleQuery: 'buy'))
+        .first;
+    expect(results.length, 2);
+    expect(results.map((t) => t.title), containsAll(['Buy milk', 'BUY juice']));
+  });
+
+  test('empty titleQuery returns every task', () async {
+    await harness.repository.create(buildTask(title: 'Anything'));
+
+    final results = await harness.repository
+        .watchAll(filter: const TaskFilter(titleQuery: '  '))
+        .first;
+    expect(results.length, 1);
+  });
+
+  test('contactId filter returns only tasks linked to that contact', () async {
+    final alice = await harness.database.contactsDao.createContact(
+      name: 'Alice',
+    );
+    final linkedTask = buildTask(title: 'Linked task');
+    final otherTask = buildTask(title: 'Other task');
+    await harness.repository.create(linkedTask);
+    await harness.repository.create(otherTask);
+    await harness.database.contactsDao.replaceContactsForTask(
+      linkedTask.id,
+      [alice.id],
+    );
+
+    final results = await harness.repository
+        .watchAll(filter: TaskFilter(contactId: alice.id))
+        .first;
+    expect(results.length, 1);
+    expect(results.single.title, 'Linked task');
+  });
+
   test('soft-deleted task is not returned by watchById', () async {
     final task = buildTask(title: 'Gone');
     await harness.repository.create(task);

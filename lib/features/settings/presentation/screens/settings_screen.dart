@@ -133,22 +133,51 @@ class _TimezoneSelectorState extends State<_TimezoneSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final zones = (tz.timeZoneDatabase.locations.keys).toList()..sort();
-    final labelStyle = Theme.of(context).textTheme.bodyMedium;
-    return DropdownButtonFormField<String>(
-      initialValue: widget.value,
-      isExpanded: true,
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        isDense: true,
-      ),
-      items: [
-        for (final name in zones)
-          DropdownMenuItem(value: name, child: Text(name, style: labelStyle)),
-      ],
-      onChanged: (name) {
-        if (name != null) widget.onChanged(name);
+
+    return SearchAnchor.bar(
+      barHintText: l10n.timezoneSearchHint,
+      barLeading: const Icon(Icons.search),
+      viewHintText: l10n.timezoneSearchHint,
+      viewLeading: const Icon(Icons.search),
+      suggestionsBuilder: (context, controller) {
+        final query = controller.text.trim().toLowerCase();
+        final matches = zones
+            .where((name) => name.toLowerCase().contains(query))
+            .toList()
+          ..sort(_fuzzyCompare(query));
+        final shown = matches.isEmpty ? const <String>[] : matches;
+        if (shown.isEmpty) {
+          return [ListTile(title: Text(l10n.noTimezonesFound))];
+        }
+        return [
+          for (final name in shown)
+            ListTile(
+              title: Text(name),
+              selected: name == widget.value,
+              onTap: () {
+                widget.onChanged(name);
+                controller.closeView(name);
+              },
+            ),
+        ];
       },
     );
+  }
+
+  int Function(String a, String b) _fuzzyCompare(String query) {
+    if (query.isEmpty) return (a, b) => a.compareTo(b);
+    return (a, b) {
+      // Prefer matches sooner in the string (prefix first, then position),
+      // keeping alphabetical order as a tie-breaker.
+      final aPrefix = a.toLowerCase().startsWith(query);
+      final bPrefix = b.toLowerCase().startsWith(query);
+      if (aPrefix != bPrefix) return aPrefix ? -1 : 1;
+      final aPos = a.toLowerCase().indexOf(query);
+      final bPos = b.toLowerCase().indexOf(query);
+      if (aPos != bPos) return aPos.compareTo(bPos);
+      return a.compareTo(b);
+    };
   }
 }

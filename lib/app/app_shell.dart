@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/app_localizations.dart';
@@ -47,49 +48,87 @@ class _DesktopShell extends StatelessWidget {
     final railIndex = selectedIndex >= 2 ? null : selectedIndex;
     final isSettingsSelected = selectedIndex == 2;
 
-    return Scaffold(
-      body: Row(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: NavigationRail(
-                  selectedIndex: railIndex,
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.checklist),
-                      selectedIcon: const Icon(Icons.checklist),
-                      label: Text(l10n.tasks),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.contacts),
-                      selectedIcon: const Icon(Icons.contacts),
-                      label: Text(l10n.contacts),
-                    ),
-                  ],
-                  onDestinationSelected: (index) {
-                    switch (index) {
-                      case 0:
-                        context.go('/');
-                      case 1:
-                        context.go('/contacts');
-                    }
-                  },
+    return _GlobalSearchShortcut(
+      child: Scaffold(
+        body: Row(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: NavigationRail(
+                    selectedIndex: railIndex,
+                    destinations: [
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.checklist),
+                        selectedIcon: const Icon(Icons.checklist),
+                        label: Text(l10n.tasks),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.contacts),
+                        selectedIcon: const Icon(Icons.contacts),
+                        label: Text(l10n.contacts),
+                      ),
+                    ],
+                    onDestinationSelected: (index) {
+                      switch (index) {
+                        case 0:
+                          context.go('/');
+                        case 1:
+                          context.go('/contacts');
+                      }
+                    },
+                  ),
                 ),
-              ),
-              const Divider(height: 1),
-              _RailSettingsEntry(
-                selected: isSettingsSelected,
-                onTap: () => context.go('/settings'),
-              ),
-            ],
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
-        ],
+                const Divider(height: 1),
+                _RailSettingsEntry(
+                  selected: isSettingsSelected,
+                  onTap: () => context.go('/settings'),
+                ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _GlobalSearchShortcut extends StatefulWidget {
+  const _GlobalSearchShortcut({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_GlobalSearchShortcut> createState() => _GlobalSearchShortcutState();
+}
+
+class _GlobalSearchShortcutState extends State<_GlobalSearchShortcut> {
+  bool _onKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.keyK &&
+        HardwareKeyboard.instance.isControlPressed) {
+      context.go('/search');
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKeyEvent);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _RailSettingsEntry extends StatelessWidget {

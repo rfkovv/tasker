@@ -73,6 +73,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterNoDueDate => 'No due date';
 
   @override
+  String get contactFilter => 'Contact:';
+
+  @override
   String get filterSort => 'Sort';
 
   @override
@@ -240,6 +243,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noContactsAvailable => 'No contacts available';
 
   @override
+  String get contactSeeAllTasks => 'See all tasks';
+
+  @override
+  String get contactNoActiveTasks => 'No active tasks linked';
+
+  @override
+  String get editContact => 'Edit Contact';
+
+  @override
   String get createNewContact => 'Create new contact';
 
   @override
@@ -262,9 +274,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newContact => 'New Contact';
-
-  @override
-  String get editContact => 'Edit Contact';
 
   @override
   String get roleLabel => 'Role';
@@ -303,6 +312,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTimezone => 'Time zone';
 
   @override
+  String get timezoneSearchHint => 'Search time zones';
+
+  @override
+  String get noTimezonesFound => 'No time zones found';
+
+  @override
   String get calendar => 'Calendar';
 
   @override
@@ -337,4 +352,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dragToScheduleHint => 'Drag a task onto a day to schedule it';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get searchHint => 'Search tasks and contacts';
+
+  @override
+  String searchNoResults(String query) {
+    return 'No results for \"$query\"';
+  }
+
+  @override
+  String get searchSectionTasks => 'Tasks';
+
+  @override
+  String get searchSectionContacts => 'People';
+
+  @override
+  String searchShowAll(String count) {
+    return 'Show all ($count)';
+  }
 }

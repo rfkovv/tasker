@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../contacts/contacts.dart' as contacts_feature;
 import '../../../../l10n/app_localizations.dart';
+import '../../../search/search.dart' show GlobalSearchButton;
 
 import '../../data/task_repository_provider.dart';
 import '../../domain/subtask.dart';
@@ -86,7 +87,22 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         subtaskProgressAsync.value ?? const <String, SubtaskProgress>{};
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).tasks)),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                AppLocalizations.of(context).tasks,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const GlobalSearchButton(),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           const _FilterBar(),
@@ -271,6 +287,17 @@ class _FilterBar extends ConsumerWidget {
     final tags = (allTasks.expand((task) => task.tags)).toSet().toList()
       ..sort();
 
+    String? contactName;
+    if (filter.contactId != null) {
+      contactName = ref
+          .watch(contacts_feature.watchContactByIdProvider(filter.contactId!))
+          .value
+          ?.name;
+    }
+    final titleQuery = filter.titleQuery?.trim();
+    final hasActiveFilter = filter != TaskFilter.none ||
+        filter.sort != TaskSort.none;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
@@ -295,12 +322,19 @@ class _FilterBar extends ConsumerWidget {
                     .setFilter(filter.copyWith(sort: TaskSort.none)),
               ),
             ),
-          if (filter != TaskFilter.none || filter.sort != TaskSort.none) ...[
+          if (hasActiveFilter) ...[
             const SizedBox(width: 12),
             Expanded(
               child: Chip(
                 avatar: const Icon(Icons.check, size: 16),
-                label: Text(_filterSummary(context, filter)),
+                label: Text(
+                  _filterSummary(
+                    context,
+                    filter,
+                    contactName: contactName,
+                    titleQuery: titleQuery,
+                  ),
+                ),
                 visualDensity: VisualDensity.compact,
                 onDeleted: () => ref
                     .read(taskFilterStateProvider.notifier)
@@ -454,7 +488,12 @@ String _sortLabel(BuildContext context, TaskSort sort) {
   };
 }
 
-String _filterSummary(BuildContext context, TaskFilter filter) {
+String _filterSummary(
+  BuildContext context,
+  TaskFilter filter, {
+  String? contactName,
+  String? titleQuery,
+}) {
   final l10n = AppLocalizations.of(context);
   final parts = <String>[
     if (filter.status != null) taskStatusLabel(context, filter.status!),
@@ -462,6 +501,9 @@ String _filterSummary(BuildContext context, TaskFilter filter) {
     if (filter.tag != null) '#${filter.tag}',
     if (filter.hideDone) l10n.hideDone,
     if (filter.noDueDate) l10n.filterNoDueDate,
+    if (filter.contactId != null && contactName != null)
+      '${l10n.contactFilter} $contactName',
+    if (titleQuery != null && titleQuery.trim().isNotEmpty) '"$titleQuery"',
   ];
   return parts.join(' · ');
 }

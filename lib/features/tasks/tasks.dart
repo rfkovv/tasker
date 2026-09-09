@@ -1,3 +1,4 @@
+export 'data/task_repository_provider.dart';
 export 'domain/task.dart';
 export 'domain/task_filter.dart';
 export 'domain/task_priority.dart';

@@ -27,6 +27,7 @@
   "noTags": "No tags",
   "resetFilters": "Reset filters",
   "filterNoDueDate": "No due date",
+  "contactFilter": "Contact:",
   "filterSort": "Sort",
   "sortNone": "Default",
   "sortDueAsc": "Deadline: nearest first",
@@ -92,6 +93,9 @@
   "noContactsLinked": "No contacts linked",
   "linkContactTitle": "Link Contact",
   "noContactsAvailable": "No contacts available",
+  "contactSeeAllTasks": "See all tasks",
+  "contactNoActiveTasks": "No active tasks linked",
+  "editContact": "Edit contact",
   "createNewContact": "Create new contact",
   "nameLabel": "Name",
   "roleOptional": "Role (optional)",
@@ -113,6 +117,8 @@
   "languagePolish": "Polish",
   "settingsDefaultDueTime": "Default due time",
   "settingsTimezone": "Time zone",
+  "timezoneSearchHint": "Search time zones",
+  "noTimezonesFound": "No time zones found",
   "calendar": "Calendar",
   "calendarMonth": "Month",
   "calendarWeek": "Week",
@@ -124,5 +130,25 @@
   "dayFri": "Fri",
   "daySat": "Sat",
   "daySun": "Sun",
-  "dragToScheduleHint": "Drag a task onto a day to schedule it"
+  "dragToScheduleHint": "Drag a task onto a day to schedule it",
+  "search": "Search",
+  "searchHint": "Search tasks and contacts",
+  "searchNoResults": "No results for \"{query}\"",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchSectionTasks": "Tasks",
+  "searchSectionContacts": "People",
+  "searchShowAll": "Show all ({count})",
+  "@searchShowAll": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  }
 }

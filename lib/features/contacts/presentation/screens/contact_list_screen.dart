@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../search/search.dart' show GlobalSearchButton;
 
 import '../../domain/contact.dart';
 import '../providers/contact_list_provider.dart';
+import '../widgets/contact_expansion.dart';
 import '../widgets/contact_tile.dart';
 
 class ContactListScreen extends ConsumerStatefulWidget {
@@ -19,8 +22,17 @@ class ContactListScreen extends ConsumerStatefulWidget {
 class _ContactListScreenState extends ConsumerState<ContactListScreen> {
   bool _showFab = false;
   String? _filterInitial;
+  final Set<String> _expandedIds = {};
 
   void _handleAddContact() => widget.onOpenContact?.call('new');
+
+  void _toggleExpanded(String id) {
+    setState(() {
+      if (!_expandedIds.add(id)) {
+        _expandedIds.remove(id);
+      }
+    });
+  }
 
   List<Contact> _filteredContacts(List<Contact> all) {
     final initial = _filterInitial;
@@ -37,7 +49,20 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).contacts),
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                AppLocalizations.of(context).contacts,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const GlobalSearchButton(),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -85,10 +110,28 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
                               );
                             }
                             final contact = contacts[index];
-                            return ContactTile(
-                              contact: contact,
-                              onTap: () =>
-                                  widget.onOpenContact?.call(contact.id),
+                            final expanded = _expandedIds.contains(contact.id);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ContactTile(
+                                  contact: contact,
+                                  expanded: expanded,
+                                  onTap: () => _toggleExpanded(contact.id),
+                                  onEdit: () => widget.onOpenContact
+                                      ?.call(contact.id),
+                                ),
+                                if (expanded)
+                                  ContactExpansion(
+                                    contact: contact,
+                                    onSeeAllTasks: () => context.go(
+                                      '/?contact=${contact.id}',
+                                    ),
+                                    onOpenTask: (taskId) => context.push(
+                                      '/tasks/$taskId',
+                                    ),
+                                  ),
+                              ],
                             );
                           },
                         ),

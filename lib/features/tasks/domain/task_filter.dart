@@ -62,6 +62,8 @@ abstract class TaskFilter with _$TaskFilter {
     @Default(false) bool hideDone,
     @Default(false) bool noDueDate,
     @Default(TaskSort.none) TaskSort sort,
+    String? contactId,
+    String? titleQuery,
   }) = _TaskFilter;
 
   const TaskFilter._();

@@ -27,6 +27,7 @@
   "noTags": "Brak tagów",
   "resetFilters": "Wyczyść filtry",
   "filterNoDueDate": "Bez terminu",
+  "contactFilter": "Kontakt:",
   "filterSort": "Sortowanie",
   "sortNone": "Domyślne",
   "sortDueAsc": "Termin: najbliższe pierwsze",
@@ -92,6 +93,9 @@
   "noContactsLinked": "Brak powiązanych kontaktów",
   "linkContactTitle": "Powiąż kontakt",
   "noContactsAvailable": "Brak dostępnych kontaktów",
+  "contactSeeAllTasks": "Zobacz wszystkie zadania",
+  "contactNoActiveTasks": "Brak powiązanych aktywnych zadań",
+  "editContact": "Edytuj kontakt",
   "createNewContact": "Utwórz nowy kontakt",
   "nameLabel": "Imię i nazwisko",
   "roleOptional": "Rola (opcjonalnie)",
@@ -113,6 +117,8 @@
   "languagePolish": "Polski",
   "settingsDefaultDueTime": "Domyślny czas terminu",
   "settingsTimezone": "Strefa czasowa",
+  "timezoneSearchHint": "Szukaj stref czasowych",
+  "noTimezonesFound": "Nie znaleziono stref czasowych",
   "calendar": "Kalendarz",
   "calendarMonth": "Miesiąc",
   "calendarWeek": "Tydzień",
@@ -124,5 +130,25 @@
   "dayFri": "pt",
   "daySat": "sob",
   "daySun": "nd",
-  "dragToScheduleHint": "Przeciągnij zadanie na dzień, aby je zaplanować"
+  "dragToScheduleHint": "Przeciągnij zadanie na dzień, aby je zaplanować",
+  "search": "Szukaj",
+  "searchHint": "Szukaj zadań i osób",
+  "searchNoResults": "Brak wyników dla \"{query}\"",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchSectionTasks": "Zadania",
+  "searchSectionContacts": "Osoby",
+  "searchShowAll": "Pokaż wszystkie ({count})",
+  "@searchShowAll": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  }
 }

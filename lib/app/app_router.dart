@@ -2,7 +2,9 @@ import 'package:go_router/go_router.dart';
 
 import '../features/contacts/presentation/screens/contact_form_screen.dart';
 import '../features/contacts/presentation/screens/contact_list_screen.dart';
+import '../features/search/presentation/screens/search_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/tasks/domain/task_filter.dart';
 import '../features/tasks/presentation/screens/task_board_screen.dart';
 import '../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../features/tasks/presentation/screens/task_form_screen.dart';
@@ -11,14 +13,33 @@ import 'app_shell.dart';
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/search',
+      builder: (context, state) => const SearchScreen(),
+    ),
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) => TaskBoardScreen(
-            onOpenTask: (id) => context.push('/tasks/$id'),
-          ),
+          builder: (context, state) {
+            final params = state.uri.queryParameters;
+            final contactId = params['contact'];
+            final query = params['q'];
+            final initialFilter = (contactId != null ||
+                        (query != null && query.trim().isNotEmpty))
+                ? TaskFilter(
+                    contactId: contactId,
+                    titleQuery: (query == null || query.trim().isEmpty)
+                        ? null
+                        : query.trim(),
+                  )
+                : null;
+            return TaskBoardScreen(
+              initialFilter: initialFilter,
+              onOpenTask: (id) => context.push('/tasks/$id'),
+            );
+          },
         ),
         GoRoute(
           path: '/tasks/new',

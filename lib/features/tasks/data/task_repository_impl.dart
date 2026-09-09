@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../../local_db/daos/contacts_dao.dart';
 import '../../../local_db/daos/tasks_dao.dart';
 import '../../../local_db/database.dart' as db;
 import '../domain/task.dart';
@@ -14,10 +15,12 @@ class TaskRepositoryImpl implements TaskRepository {
     required Future<String> Function() ownerIdLoader,
   })  : _db = database,
         _dao = database.tasksDao,
+        _contactsDao = database.contactsDao,
         _ownerIdLoader = ownerIdLoader;
 
   final db.AppDatabase _db;
   final TasksDao _dao;
+  final ContactsDao _contactsDao;
   final Future<String> Function() _ownerIdLoader;
   final _mapper = TaskMapper();
 
@@ -25,9 +28,24 @@ class TaskRepositoryImpl implements TaskRepository {
   Stream<List<Task>> watchAll({TaskFilter filter = TaskFilter.none}) async* {
     final status = filter.status?.dbValue;
     final priority = filter.priority?.dbValue;
+    final contactId = filter.contactId;
+    final titleLike = filter.titleQuery?.trim();
+    final effectiveTitle =
+        (titleLike == null || titleLike.isEmpty) ? null : titleLike;
 
-    yield* _dao.watchAllTasks(status: status, priority: priority).asyncMap(
+    yield* _dao
+        .watchAllTasks(
+          status: status,
+          priority: priority,
+          titleLike: effectiveTitle,
+        )
+        .asyncMap(
       (rows) async {
+        // Resolve the set of task ids linked to the requested contact (if any)
+        // ahead of filtering so linked tasks are matched by their ids.
+        final contactTaskIds = contactId == null
+            ? null
+            : (await _contactsDao.taskIdsForContact(contactId)).toSet();
         final tagMap =
             await _dao.tagsForTasks(rows.map((r) => r.id).toList());
         final tasks = rows
@@ -38,6 +56,9 @@ class TaskRepositoryImpl implements TaskRepository {
             return false;
           }
           if (filter.noDueDate && task.dueDate != null) return false;
+          if (contactTaskIds != null && !contactTaskIds.contains(task.id)) {
+            return false;
+          }
           return true;
         })
             .toList();

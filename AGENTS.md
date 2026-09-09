@@ -3,50 +3,46 @@
 PROJECT: TaskMaster (Flutter menedżer zadań)
 ARCHITECTURE: See ARCHITECTURE.md — follow it strictly, no deviations without approval.
 
-CURRENT PHASE: Stage 5 — Calendar view + drag & drop scheduling
+CURRENT PHASE: Stage 5.5 — Search (global) + contact expansion + filters
 
-STAGE 5 SCOPE (do NOT exceed):
-- UKŁAD: ekran zadań dzieli się na dwie strefy obok siebie:
-  lewa = istniejąca lista zadań (bez zmian funkcjonalnych),
-  prawa = siatka kalendarza. Backlog = istniejąca lista zadań
-  (NIE tworzymy osobnego UI "unscheduled backlog")
-- KALENDARZ: siatka miesięczna; zadania z dueDate jako kafelki
-  w komórkach dni; przełącznik widoku tydzień/miesiąc/kwartał
-  (domyślnie miesiąc)
-- DRAG & DROP (pełna symetria):
-  a) zadanie bez terminu z listy → komórka dnia = ustaw dueDate
-     (godzina domyślna z ustawień)
-  b) kafelek na kalendarzu → inna komórka = zmiana dueDate
-  c) kafelek z kalendarza → lista (backlog) = dueDate NULL
-- Termin zmienia się WYŁĄCZNIE przez drag & drop — zero ręcznego
-  wpisywania daty w tym widoku (edycja godziny zostaje w formularzu)
-- Ustawienia (etap 2.5): klucz default_due_time (startowo 07:00,
-  edytowalny), selektor strefy czasowej (timezone-aware: porównania
-  i zapisy UTC, wyświetlanie wg strefy z ustawień)
-- Deadliny widoczne na kafelku kalendarza = tytuł + godzina;
-  overdue styling reused
+STAGE 5.5 SCOPE (do NOT exceed):
+1. TIMEZONE SEARCH: dropdown strefy czasowej w settingsach z polem
+   wyszukiwania (fuzzy, case-insensitive; lista stref IANA)
+2. GLOBAL SEARCH (features/search):
+   - Wejście: przycisk lupy w topbarze (centralnie) → overlay/pole
+     z wynikami; skrót klawiaturowy Ctrl+K (desktop)
+   - Wyniki pogrupowane sekcjami: Zadania | Osoby istotne;
+     architektura pod przyszłe sekcje (lista sekcji = rejestrowana,
+     nie hardcodowana)
+   - Zadanie: klik → ekran detali; Kontakt: klik → detale kontaktu
+   - Sortowanie wyników: dopasowanie tytułu (prefiks > substring),
+     potem alfabetycznie; LIMIT wyników per sekcja (np. 10) +
+     "pokaż więcej" → pełna lista zadań z filtrem tekstowym
+   - Query przez repository (Case-insensitive LIKE), debounce input
+3. CONTACT EXPANSION:
+   - Kliknięcie kontaktu na liście → rozwinięcie z listą AKTYWNYCH
+     zadań zlinkowanych z tym kontaktem (mini-kafelki)
+   - Przycisk "Zobacz wszystkie zadania" → nawigacja do listy zadań
+     z załączonym filtrem po kontakcie (TaskFilter.contactId — nowy
+     wymiar filtra)
+   - Aktywne filtry z nagłówka listy zawsze widoczne (badge)
 
-OUT OF SCOPE: nawigacja na żywo, notyfikacje, edycja zadania z
-kafelek kalendarza (otwieranie detali — tak), kwartał poza prostą
-siatką, cykliczne zadania
+OUT OF SCOPE: buildy Windows/Android, sync, lokalizacje pod ekspedycje
 
 IMPLEMENTATION ORDER:
-1. Layout: dwukolumnowy ekran zadań (lista | kalendarz) + przełącznik
-   miesiąc/tydzień/kwartał (nawigacja bez zmiany destynacji)
-2. Rendering: zadania z dueDate na siatce (group by day, strefa-aware)
-3. DnD: LongPressDraggable/Draggable na kafelkach listy i siatki,
-   DragTarget na komórkach + lista jako target (zdjęcie terminu)
-4. Logika domeny: mapowanie drop→dueDate (data komórki + default
-   time + timezone), testy jednostkowe (strefy czasowe!)
-5. i18n: nowe stringi PL/EN
-6. Tests: unit (date mapping, strefy), widget (drop = dueDate update,
-   drop na listę = null), analyze per warstwa
+1. TaskFilter: dodanie contactId (query layer)
+2. Search feature: search provider (fold results: tasks + contacts),
+   overlay UI, keyboard shortcut
+3. Contact expansion UI na liście kontaktów (aktywne zadania + link)
+4. i18n PL/EN wszystkich nowych stringów
+5. Tests: search unit (grupowanie, ranking), widget (rozwinięcie
+   kontaktu, przycisk → lista z filtrem), analyze per warstwa
 
 COMPLETION CRITERIA:
-- Drag zadania z listy na dzień ustawia termin (widoczny na kafelku
-  i w formularzu z godziną 07:00); przeciągnięcie między dniami
-  zmienia termin; zwrot na listę usuwa termin; przełącznik
-  tydzień/miesiąc/kwartał działa; wszystko przetrwa restart
+- Ctrl+K/overlay znajduje zadania i kontakty wspólnie;
+  kontakt rozwija się z aktywnymi zadaniami; "zobacz wszystkie
+  zadania" otwiera listę prefiltrowaną po kontakcie; strefa ma
+  wyszukiwarkę; testy zielone
 
 RULES:
 1. Feature-first structure; mirror conventions of features/tasks/ exactly

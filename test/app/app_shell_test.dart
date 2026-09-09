@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskmaster/app/app_shell.dart';
@@ -37,6 +38,10 @@ GoRouter buildRouter() {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const _Page(label: 'Settings'),
+          ),
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => const _Page(label: 'Search'),
           ),
         ],
       ),
@@ -131,5 +136,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(rail(tester).selectedIndex, 0);
+  });
+
+  testWidgets('Ctrl+K opens the global search overlay', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpShell(tester);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search'), findsOneWidget);
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/search');
   });
 }

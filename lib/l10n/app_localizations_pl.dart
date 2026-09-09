@@ -74,6 +74,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get filterNoDueDate => 'Bez terminu';
 
   @override
+  String get contactFilter => 'Kontakt:';
+
+  @override
   String get filterSort => 'Sortowanie';
 
   @override
@@ -241,6 +244,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get noContactsAvailable => 'Brak dostępnych kontaktów';
 
   @override
+  String get contactSeeAllTasks => 'Zobacz wszystkie zadania';
+
+  @override
+  String get contactNoActiveTasks => 'Brak powiązanych aktywnych zadań';
+
+  @override
+  String get editContact => 'Edytuj kontakt';
+
+  @override
   String get createNewContact => 'Utwórz nowy kontakt';
 
   @override
@@ -263,9 +275,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get newContact => 'Nowy kontakt';
-
-  @override
-  String get editContact => 'Edytuj kontakt';
 
   @override
   String get roleLabel => 'Rola';
@@ -304,6 +313,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get settingsTimezone => 'Strefa czasowa';
 
   @override
+  String get timezoneSearchHint => 'Szukaj stref czasowych';
+
+  @override
+  String get noTimezonesFound => 'Nie znaleziono stref czasowych';
+
+  @override
   String get calendar => 'Kalendarz';
 
   @override
@@ -339,4 +354,26 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get dragToScheduleHint =>
       'Przeciągnij zadanie na dzień, aby je zaplanować';
+
+  @override
+  String get search => 'Szukaj';
+
+  @override
+  String get searchHint => 'Szukaj zadań i osób';
+
+  @override
+  String searchNoResults(String query) {
+    return 'Brak wyników dla \"$query\"';
+  }
+
+  @override
+  String get searchSectionTasks => 'Zadania';
+
+  @override
+  String get searchSectionContacts => 'Osoby';
+
+  @override
+  String searchShowAll(String count) {
+    return 'Pokaż wszystkie ($count)';
+  }
 }

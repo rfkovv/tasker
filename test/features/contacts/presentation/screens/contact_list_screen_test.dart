@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taskmaster/features/contacts/contacts.dart' as contacts_feature;
 import 'package:taskmaster/features/contacts/domain/contact.dart';
 import 'package:taskmaster/features/contacts/domain/contact_repository.dart';
+import 'package:taskmaster/features/contacts/domain/linked_task.dart';
 import 'package:taskmaster/features/contacts/presentation/screens/contact_list_screen.dart';
+import 'package:taskmaster/features/contacts/presentation/widgets/contact_expansion.dart';
 import 'package:taskmaster/features/contacts/presentation/widgets/contact_tile.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
 
@@ -85,11 +87,14 @@ Contact buildContact({String? id, String name = 'Alex'}) {
 Widget buildApp(
   List<Contact> contacts, {
   ValueChanged<String>? onOpenContact,
+  List<LinkedTask> linkedTasks = const [],
 }) {
   return ProviderScope(
     overrides: [
       contacts_feature.contactRepositoryProvider
           .overrideWithValue(FakeContactRepository(contacts)),
+      contacts_feature.activeTasksForContactProvider
+          .overrideWith((ref, contactId) => Stream.value(linkedTasks)),
     ],
     child: MaterialApp(
       locale: const Locale('en'),
@@ -119,7 +124,43 @@ void main() {
     expect(find.text('Bob'), findsOneWidget);
   });
 
-  testWidgets('tapping contact invokes onOpenContact', (tester) async {
+  testWidgets('tapping contact expands inline with its active tasks',
+      (tester) async {
+    await tester.pumpWidget(buildApp(
+      [buildContact(id: '1', name: 'Alice')],
+      linkedTasks: [
+        const LinkedTask(id: 't1', title: 'Ship fix'),
+        LinkedTask(id: 't2', title: 'Plan retro', dueAt: DateTime(2026, 9, 10)),
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(ContactTile).first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ContactExpansion), findsOneWidget);
+    expect(find.text('Ship fix'), findsOneWidget);
+    expect(find.text('Plan retro'), findsOneWidget);
+    expect(find.text('See all tasks'), findsOneWidget);
+
+    await tester.tap(find.byType(ContactTile).first);
+    await tester.pumpAndSettle();
+    expect(find.byType(ContactExpansion), findsNothing);
+  });
+
+  testWidgets('expanded contact shows hint when no active tasks linked',
+      (tester) async {
+    await tester.pumpWidget(buildApp([buildContact(id: '1', name: 'Alice')]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(ContactTile).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No active tasks linked'), findsOneWidget);
+  });
+
+  testWidgets('edit icon on contact tile invokes onOpenContact',
+      (tester) async {
     String? opened;
     await tester.pumpWidget(buildApp(
       [buildContact(id: '1', name: 'Alice')],
@@ -127,7 +168,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(ContactTile).first);
+    await tester.tap(find.byIcon(Icons.edit_outlined).first);
     expect(opened, '1');
   });
 

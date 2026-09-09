@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'No due date'**
   String get filterNoDueDate;
 
+  /// No description provided for @contactFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact:'**
+  String get contactFilter;
+
   /// No description provided for @filterSort.
   ///
   /// In en, this message translates to:
@@ -548,6 +554,24 @@ abstract class AppLocalizations {
   /// **'No contacts available'**
   String get noContactsAvailable;
 
+  /// No description provided for @contactSeeAllTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'See all tasks'**
+  String get contactSeeAllTasks;
+
+  /// No description provided for @contactNoActiveTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No active tasks linked'**
+  String get contactNoActiveTasks;
+
+  /// No description provided for @editContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Contact'**
+  String get editContact;
+
   /// No description provided for @createNewContact.
   ///
   /// In en, this message translates to:
@@ -595,12 +619,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New Contact'**
   String get newContact;
-
-  /// No description provided for @editContact.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Contact'**
-  String get editContact;
 
   /// No description provided for @roleLabel.
   ///
@@ -674,6 +692,18 @@ abstract class AppLocalizations {
   /// **'Time zone'**
   String get settingsTimezone;
 
+  /// No description provided for @timezoneSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search time zones'**
+  String get timezoneSearchHint;
+
+  /// No description provided for @noTimezonesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No time zones found'**
+  String get noTimezonesFound;
+
   /// No description provided for @calendar.
   ///
   /// In en, this message translates to:
@@ -745,6 +775,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drag a task onto a day to schedule it'**
   String get dragToScheduleHint;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search tasks and contacts'**
+  String get searchHint;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for \"{query}\"'**
+  String searchNoResults(String query);
+
+  /// No description provided for @searchSectionTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get searchSectionTasks;
+
+  /// No description provided for @searchSectionContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get searchSectionContacts;
+
+  /// No description provided for @searchShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all ({count})'**
+  String searchShowAll(String count);
 }
 
 class _AppLocalizationsDelegate
