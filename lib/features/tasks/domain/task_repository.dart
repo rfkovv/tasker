@@ -11,6 +11,10 @@ abstract class TaskRepository {
 
   Future<Task> create(Task task);
 
+  /// Creates a task and links it to [contactIds] in a single atomic
+  /// transaction. If any step fails the entire write is rolled back.
+  Future<Task> createWithContacts(Task task, List<String> contactIds);
+
   Future<void> update(Task task);
 
   Future<void> updateStatus(String id, TaskStatus status);

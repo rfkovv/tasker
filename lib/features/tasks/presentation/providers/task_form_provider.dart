@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../contacts/domain/contact.dart';
 import '../../data/task_repository_provider.dart';
 import '../../domain/task.dart';
 import '../../domain/task_priority.dart';
@@ -15,6 +16,8 @@ class TaskFormState {
     this.tags = const [],
     this.priority = TaskPriority.medium,
     this.dueDate,
+    this.contactIds = const [],
+    this.draftContacts = const [],
   });
 
   factory TaskFormState.initial() => const TaskFormState();
@@ -25,6 +28,12 @@ class TaskFormState {
   final TaskPriority priority;
   final DateTime? dueDate;
 
+  /// Pending contact ids for a task being created.
+  final List<String> contactIds;
+
+  /// Contacts created inline during this session (not yet in DB watch).
+  final List<Contact> draftContacts;
+
   TaskFormState copyWith({
     String? title,
     String? description,
@@ -32,6 +41,8 @@ class TaskFormState {
     TaskPriority? priority,
     DateTime? dueDate,
     bool clearDueDate = false,
+    List<String>? contactIds,
+    List<Contact>? draftContacts,
   }) {
     return TaskFormState(
       title: title ?? this.title,
@@ -39,6 +50,8 @@ class TaskFormState {
       tags: tags ?? this.tags,
       priority: priority ?? this.priority,
       dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
+      contactIds: contactIds ?? this.contactIds,
+      draftContacts: draftContacts ?? this.draftContacts,
     );
   }
 }
@@ -80,6 +93,29 @@ class TaskForm extends _$TaskForm {
 
   void setTags(List<String> tags) => state = state.copyWith(tags: tags);
 
+  void attachContact(String contactId) async {
+    if (state.contactIds.contains(contactId)) return;
+    state = state.copyWith(
+      contactIds: [...state.contactIds, contactId],
+    );
+  }
+
+  void detachContact(String contactId) async {
+    state = state.copyWith(
+      contactIds: state.contactIds.where((id) => id != contactId).toList(),
+      draftContacts:
+          state.draftContacts.where((c) => c.id != contactId).toList(),
+    );
+  }
+
+  void linkNewContact(Contact contact) async {
+    if (state.contactIds.contains(contact.id)) return;
+    state = state.copyWith(
+      contactIds: [...state.contactIds, contact.id],
+      draftContacts: [...state.draftContacts, contact],
+    );
+  }
+
   Future<bool> save() async {
     if (state.title.trim().isEmpty) return false;
 
@@ -99,7 +135,11 @@ class TaskForm extends _$TaskForm {
     );
 
     if (this.task == null) {
-      await repository.create(task);
+      if (state.contactIds.isEmpty) {
+        await repository.create(task);
+      } else {
+        await repository.createWithContacts(task, state.contactIds);
+      }
     } else {
       await repository.update(task);
     }

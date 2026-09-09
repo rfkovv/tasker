@@ -88,6 +88,13 @@ class _FakeContactRepository implements ContactRepository {
 }
 
 class _FakeTaskRepository implements TaskRepository {
+  _FakeTaskRepository({this.onCreateContactsFail = false});
+
+  final bool onCreateContactsFail;
+  bool _taskCreated = false;
+
+  bool get taskCreated => _taskCreated;
+
   @override
   Stream<List<Task>> watchAll({TaskFilter filter = TaskFilter.none}) {
     return const Stream.empty();
@@ -108,7 +115,20 @@ class _FakeTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<Task> create(Task task) async => task;
+  Future<Task> create(Task task) async {
+    _taskCreated = true;
+    return task;
+  }
+
+  @override
+  Future<Task> createWithContacts(
+    Task task,
+    List<String> contactIds,
+  ) async {
+    if (onCreateContactsFail) throw Exception('link failed');
+    _taskCreated = true;
+    return task;
+  }
 
   @override
   Future<void> update(Task task) async {}
@@ -135,6 +155,7 @@ void main() {
     List<Contact> contacts = const [],
     ContactRepository? contactRepo,
     TaskRepository? taskRepo,
+    bool isNew = false,
   }) {
     return ProviderScope(
       overrides: [
@@ -147,7 +168,7 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const TaskFormScreen(taskId: 't1'),
+        home: TaskFormScreen(taskId: isNew ? 'new' : 't1'),
       ),
     );
   }
@@ -198,5 +219,165 @@ void main() {
 
     expect(find.text('Sam'), findsOneWidget);
     expect(find.text('No contacts linked'), findsNothing);
+  });
+
+  // ── create-mode tests ──────────────────────────────────────────────────
+
+  testWidgets('create mode shows contacts section', (tester) async {
+    await tester.pumpWidget(
+      buildApp(isNew: true, contacts: [buildContact()]),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Contacts'), findsOneWidget);
+    expect(find.text('No contacts linked'), findsOneWidget);
+  });
+
+  testWidgets('create mode: link existing contact from sheet → chip appears',
+      (tester) async {
+    final repo = _FakeContactRepository([
+      buildContact(id: 'c1', name: 'Alex'),
+      buildContact(id: 'c2', name: 'Sam'),
+    ]);
+    await tester.pumpWidget(
+      buildApp(isNew: true, contactRepo: repo, contacts: repo._contacts),
+    );
+    await tester.pumpAndSettle();
+
+    // scroll to contacts section
+    final scrollable = find.byType(SingleChildScrollView);
+    await tester.drag(scrollable, const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Link contact').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Link Contact'), findsOneWidget);
+    expect(find.text('Sam'), findsOneWidget);
+
+    await tester.tap(find.text('Sam'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sam'), findsOneWidget);
+    expect(find.text('No contacts linked'), findsNothing);
+  });
+
+  testWidgets('create mode: inline create → chip appears', (tester) async {
+    final repo = _FakeContactRepository([]);
+    await tester.pumpWidget(
+      buildApp(isNew: true, contactRepo: repo, contacts: repo._contacts),
+    );
+    await tester.pumpAndSettle();
+
+    final scrollable = find.byType(SingleChildScrollView);
+    await tester.drag(scrollable, const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Link contact').first);
+    await tester.pumpAndSettle();
+
+    // no existing contacts → empty state with inline-create entry
+    expect(find.text('No contacts available'), findsOneWidget);
+
+    await tester.tap(find.text('Create new contact'));
+    await tester.pumpAndSettle();
+
+    // target the Name field inside the bottom sheet (labelText "Name")
+    final nameField = find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.widgetWithText(TextField, 'Name'),
+    );
+    await tester.enterText(nameField, 'New Person');
+    await tester.tap(find.text('Create & Link'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New Person'), findsOneWidget);
+    expect(find.text('No contacts linked'), findsNothing);
+  });
+
+  testWidgets('save in create mode calls createWithContacts when contacts are linked',
+      (tester) async {
+    final fakeRepo = _FakeTaskRepository();
+    final contactRepo = _FakeContactRepository([
+      buildContact(id: 'c1', name: 'Alex'),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contactRepositoryProvider.overrideWithValue(contactRepo),
+          taskRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const TaskFormScreen(taskId: 'new'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // enter title
+    await tester.enterText(find.byType(TextField).first, 'New Task');
+    await tester.pumpAndSettle();
+
+    // link contact
+    final scrollable = find.byType(SingleChildScrollView);
+    await tester.drag(scrollable, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Link contact').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Alex'));
+    await tester.pumpAndSettle();
+
+    // save
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepo.taskCreated, isTrue);
+  });
+
+  testWidgets('rollback: save opens form but does not pop when createWithContacts throws',
+      (tester) async {
+    final fakeRepo = _FakeTaskRepository(onCreateContactsFail: true);
+    final contactRepo = _FakeContactRepository([
+      buildContact(id: 'c1', name: 'Alex'),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contactRepositoryProvider.overrideWithValue(contactRepo),
+          taskRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const TaskFormScreen(taskId: 'new'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // enter title + link contact
+    await tester.enterText(find.byType(TextField).first, 'Task Fail');
+    await tester.pumpAndSettle();
+    final scrollable = find.byType(SingleChildScrollView);
+    await tester.drag(scrollable, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Link contact').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Alex'));
+    await tester.pumpAndSettle();
+
+    // save — fails silently inside, form stays open
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+
+    // form is still visible (not popped) and no task was created
+    expect(find.text('New Task'), findsOneWidget);
+    expect(fakeRepo.taskCreated, isFalse);
   });
 }

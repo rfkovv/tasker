@@ -146,6 +146,47 @@ class AppLocalizationsPl extends AppLocalizations {
   String get editTask => 'Edytuj zadanie';
 
   @override
+  String get edit => 'Edytuj';
+
+  @override
+  String get markDone => 'Oznacz jako zrobione';
+
+  @override
+  String get markTodo => 'Przywróć do zrobienia';
+
+  @override
+  String get delete => 'Usuń';
+
+  @override
+  String get subtasks => 'Podzadania';
+
+  @override
+  String subtaskProgress(int done, int total) {
+    return '$done/$total';
+  }
+
+  @override
+  String get subtaskHint => 'Wpisz podzadanie i naciśnij Enter...';
+
+  @override
+  String get noSubtasks => 'Brak podzadań';
+
+  @override
+  String get comments => 'Komentarze';
+
+  @override
+  String get addComment => 'Dodaj komentarz';
+
+  @override
+  String get commentHint => 'Napisz komentarz...';
+
+  @override
+  String get noComments => 'Brak komentarzy';
+
+  @override
+  String get taskNotFound => 'Nie znaleziono zadania';
+
+  @override
   String get save => 'Zapisz';
 
   @override

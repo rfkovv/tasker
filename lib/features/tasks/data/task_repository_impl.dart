@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../../local_db/daos/tasks_dao.dart';
+import '../../../local_db/database.dart' as db;
 import '../domain/task.dart';
 import '../domain/task_filter.dart';
 import '../domain/task_repository.dart';
@@ -9,11 +10,13 @@ import 'task_mapper.dart';
 
 class TaskRepositoryImpl implements TaskRepository {
   TaskRepositoryImpl({
-    required TasksDao dao,
+    required db.AppDatabase database,
     required Future<String> Function() ownerIdLoader,
-  })  : _dao = dao,
+  })  : _db = database,
+        _dao = database.tasksDao,
         _ownerIdLoader = ownerIdLoader;
 
+  final db.AppDatabase _db;
   final TasksDao _dao;
   final Future<String> Function() _ownerIdLoader;
   final _mapper = TaskMapper();
@@ -58,6 +61,23 @@ class TaskRepositoryImpl implements TaskRepository {
     if (task.tags.isNotEmpty) {
       await _dao.replaceTagsForTask(task.id, task.tags);
     }
+    final row = await _dao.getTaskById(task.id);
+    final tags = await _dao.tagsForTask(task.id);
+    return _mapper.toDomain(row, tags);
+  }
+
+  @override
+  Future<Task> createWithContacts(
+    Task task,
+    List<String> contactIds,
+  ) async {
+    final ownerId = await _ownerIdLoader();
+    final companion = _mapper.toCompanion(task, ownerId: ownerId);
+    await _db.createTaskWithContacts(
+      task: companion,
+      tagNames: task.tags,
+      contactIds: contactIds,
+    );
     final row = await _dao.getTaskById(task.id);
     final tags = await _dao.tagsForTask(task.id);
     return _mapper.toDomain(row, tags);

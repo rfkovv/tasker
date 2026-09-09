@@ -51,6 +51,29 @@
   "relevantPersons": "Relevant Persons",
   "newTask": "New Task",
   "editTask": "Edit Task",
+  "edit": "Edit",
+  "markDone": "Mark done",
+  "markTodo": "Back to to-do",
+  "delete": "Delete",
+  "subtasks": "Subtasks",
+  "subtaskProgress": "{done}/{total}",
+  "@subtaskProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "subtaskHint": "Type a subtask and press Enter...",
+  "noSubtasks": "No subtasks yet",
+  "comments": "Comments",
+  "addComment": "Add comment",
+  "commentHint": "Write a comment...",
+  "noComments": "No comments yet",
+  "taskNotFound": "Task not found",
   "save": "Save",
   "titleLabel": "Title",
   "descriptionLabel": "Description",

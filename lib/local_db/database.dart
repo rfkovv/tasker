@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'daos/contacts_dao.dart';
+import 'daos/comments_dao.dart';
+import 'daos/subtasks_dao.dart';
 import 'daos/tasks_dao.dart';
 import 'tables/app_settings_table.dart';
 import 'tables/comments_table.dart';
@@ -31,14 +33,14 @@ part 'database.g.dart';
     TaskDependencies,
     AppSettings,
   ],
-  daos: [TasksDao, ContactsDao],
+  daos: [TasksDao, ContactsDao, SubtasksDao, CommentsDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,7 +48,9 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (m, from, to) async {
-          // Future migrations go here
+          if (from < 2) {
+            await m.addColumn(comments, comments.deletedAt);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -68,6 +72,21 @@ class AppDatabase extends _$AppDatabase {
         value: Value(value),
       ),
     );
+  }
+
+  /// Creates a task, its tags and its contact links in a single atomic
+  /// transaction. If any step fails, the whole write is rolled back and
+  /// no orphan rows remain.
+  Future<void> createTaskWithContacts({
+    required TasksCompanion task,
+    required List<String> tagNames,
+    required List<String> contactIds,
+  }) async {
+    await transaction(() async {
+      await tasksDao.upsertTask(task);
+      await tasksDao.replaceTagsForTask(task.id.value, tagNames);
+      await contactsDao.replaceContactsForTask(task.id.value, contactIds);
+    });
   }
 }
 

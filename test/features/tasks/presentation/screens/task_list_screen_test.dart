@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taskmaster/features/contacts/contacts.dart' as contacts_feature;
 import 'package:taskmaster/features/contacts/domain/contact.dart';
 import 'package:taskmaster/features/contacts/domain/contact_repository.dart';
+import 'package:taskmaster/features/tasks/domain/subtask.dart';
+import 'package:taskmaster/features/tasks/domain/subtask_repository.dart';
 import 'package:taskmaster/features/tasks/domain/task.dart';
 import 'package:taskmaster/features/tasks/domain/task_filter.dart';
 import 'package:taskmaster/features/tasks/domain/task_priority.dart';
@@ -11,6 +13,7 @@ import 'package:taskmaster/features/tasks/domain/task_repository.dart';
 import 'package:taskmaster/features/tasks/domain/task_status.dart';
 import 'package:taskmaster/features/tasks/presentation/screens/task_list_screen.dart';
 import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
+import 'package:taskmaster/features/tasks/data/subtask_repository_provider.dart';
 import 'package:taskmaster/features/tasks/data/task_repository_provider.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
 
@@ -44,6 +47,10 @@ class FakeTaskRepository implements TaskRepository {
   Future<Task> create(Task task) async => task;
 
   @override
+  Future<Task> createWithContacts(Task task, List<String> contactIds) async =>
+      task;
+
+  @override
   Future<void> update(Task task) async {}
 
   @override
@@ -57,6 +64,36 @@ class FakeTaskRepository implements TaskRepository {
   @override
   Future<void> delete(String id) async {
     _tasks.removeWhere((t) => t.id == id);
+  }
+}
+
+class FakeSubtaskRepository implements SubtaskRepository {
+  FakeSubtaskRepository(this.progress);
+
+  final Map<String, SubtaskProgress> progress;
+
+  @override
+  Stream<List<Subtask>> watchByTask(String taskId) => const Stream.empty();
+
+  @override
+  Future<Subtask> create({required String taskId, required String title}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> toggle(String id, {required bool isCompleted}) async {}
+
+  @override
+  Future<void> delete(String id) async {}
+
+  @override
+  Future<Map<String, SubtaskProgress>> progressForTasks(
+    List<String> taskIds,
+  ) async {
+    return {
+      for (final id in taskIds)
+        if (progress[id] != null && !progress[id]!.isEmpty) id: progress[id]!,
+    };
   }
 }
 
@@ -119,10 +156,13 @@ Task buildTask({
 Widget buildApp(
   List<Task> tasks, {
   ValueChanged<String>? onOpenTask,
+  Map<String, SubtaskProgress> subtaskProgress = const {},
 }) {
   return ProviderScope(
     overrides: [
       taskRepositoryProvider.overrideWithValue(FakeTaskRepository(tasks)),
+      subtaskRepositoryProvider
+          .overrideWithValue(FakeSubtaskRepository(subtaskProgress)),
       contacts_feature.contactRepositoryProvider
           .overrideWithValue(FakeContactRepository()),
     ],
@@ -319,5 +359,34 @@ void main() {
     expect(find.text('Open'), findsOneWidget);
     expect(find.text('Closed'), findsOneWidget);
     expect(find.widgetWithText(Chip, 'Hide done'), findsNothing);
+  });
+
+  testWidgets('shows subtask progress x/y on the tile', (tester) async {
+    await tester.pumpWidget(buildApp(
+      [buildTask(id: '1', title: 'Task with subtasks')],
+      subtaskProgress: {
+        '1': const SubtaskProgress(done: 2, total: 3),
+      },
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2/3'), findsOneWidget);
+  });
+
+  testWidgets('does not show progress when task has no subtasks',
+      (tester) async {
+    await tester.pumpWidget(buildApp(
+      [buildTask(id: '1', title: 'Plain task')],
+      subtaskProgress: const {},
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(TaskTile),
+        matching: find.textContaining('/'),
+      ),
+      findsNothing,
+    );
   });
 }

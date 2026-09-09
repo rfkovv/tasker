@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/contacts/presentation/screens/contact_form_screen.dart';
 import '../features/contacts/presentation/screens/contact_list_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../features/tasks/presentation/screens/task_form_screen.dart';
 import '../features/tasks/presentation/screens/task_list_screen.dart';
 import 'app_shell.dart';
@@ -20,12 +21,29 @@ final appRouter = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/tasks/:id',
+          path: '/tasks/new',
+          builder: (context, state) => TaskFormScreen(
+            taskId: 'new',
+            onSaved: () => context.go('/'),
+          ),
+        ),
+        GoRoute(
+          path: '/tasks/:id/edit',
           builder: (context, state) {
             final id = state.pathParameters['id']!;
             return TaskFormScreen(
               taskId: id,
-              onSaved: () => context.go('/'),
+              onSaved: () => context.go('/tasks/$id'),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/tasks/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return TaskDetailScreen(
+              taskId: id,
+              onEdit: (targetId) => context.push('/tasks/$targetId/edit'),
             );
           },
         ),

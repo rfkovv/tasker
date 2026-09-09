@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../contacts/contacts.dart' as contacts_feature;
 import '../../../../l10n/app_localizations.dart';
 
+import '../../domain/subtask.dart';
 import '../../domain/task.dart';
 import 'overdue_indicator.dart';
 import 'task_priority_badge.dart';
@@ -12,12 +13,14 @@ class TaskTile extends StatelessWidget {
     super.key,
     required this.task,
     this.contacts = const [],
+    this.subtaskProgress,
     this.onTap,
     this.onToggleDone,
   });
 
   final Task task;
   final List<contacts_feature.Contact> contacts;
+  final SubtaskProgress? subtaskProgress;
   final VoidCallback? onTap;
   final ValueChanged<bool>? onToggleDone;
 
@@ -56,6 +59,30 @@ class TaskTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(task.title, style: titleStyle),
+                    if (subtaskProgress != null &&
+                        !subtaskProgress!.isEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.checklist,
+                            size: 14,
+                            color: theme.colorScheme.outline,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            AppLocalizations.of(context).subtaskProgress(
+                              subtaskProgress!.done,
+                              subtaskProgress!.total,
+                            ),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (task.description?.isNotEmpty ?? false) ...[
                       const SizedBox(height: 4),
                       Text(

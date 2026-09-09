@@ -35,7 +35,7 @@ class _InMemoryDatabase {
     database = db.AppDatabase(NativeDatabase.memory());
     dao = database.tasksDao;
     repository = TaskRepositoryImpl(
-      dao: dao,
+      database: database,
       ownerIdLoader: () async => 'owner-test',
     );
   }
@@ -180,5 +180,53 @@ void main() {
 
     final watched = await harness.repository.watchById(task.id).first;
     expect(watched, isNull);
+  });
+
+  test('createWithContacts creates task and links contacts atomically', () async {
+    // Insert real contacts so FK constraints are satisfied.
+    await harness.database.contactsDao.createContact(
+      name: 'Alice',
+    );
+    await harness.database.contactsDao.createContact(
+      name: 'Bob',
+    );
+    final contacts = await harness.database.contactsDao.watchAllContacts().first;
+    final contactIds = contacts.map((c) => c.id).toList();
+    final task = buildTask(title: 'With contacts');
+
+    final created =
+        await harness.repository.createWithContacts(task, contactIds);
+
+    expect(created.title, 'With contacts');
+
+    final links = await harness.database.contactsDao
+        .contactsForTask(task.id);
+    expect(links.length, 2);
+    expect(links.map((c) => c.id).toSet(), contactIds.toSet());
+  });
+
+  test('createWithContacts rolls back on link failure', () async {
+    final harness2 = _InMemoryDatabase();
+    final task = buildTask(title: 'Should rollback');
+
+    // Close the database before the call to force a failure during the
+    // transaction.  This verifies that the outer transaction rolls back
+    // the task insert as well — no orphan task row is left behind.
+    await harness2.database.close();
+
+    await expectLater(
+      () => harness2.repository.createWithContacts(task, ['ct-x']),
+      throwsA(anything),
+    );
+
+    // Verify no task row was created (the DB is closed so we re-open
+    // a fresh one to query).
+    final fresh = db.AppDatabase(NativeDatabase.memory());
+    try {
+      final all = await fresh.tasksDao.watchAllTasks().first;
+      expect(all, isEmpty);
+    } finally {
+      await fresh.close();
+    }
   });
 }

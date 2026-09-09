@@ -5,10 +5,12 @@ import '../../../contacts/contacts.dart' as contacts_feature;
 import '../../../../l10n/app_localizations.dart';
 
 import '../../data/task_repository_provider.dart';
+import '../../domain/subtask.dart';
 import '../../domain/task.dart';
 import '../../domain/task_filter.dart';
 import '../../domain/task_priority.dart';
 import '../../domain/task_status.dart';
+import '../providers/subtask_progress_by_task_provider.dart';
 import '../providers/task_contacts_by_task_provider.dart';
 import '../providers/task_list_provider.dart';
 import '../widgets/task_priority_badge.dart';
@@ -77,6 +79,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     final contactsAsync = ref.watch(taskContactsByTaskProvider(filter));
     final contactsByTask =
         contactsAsync.value ?? const <String, List<contacts_feature.Contact>>{};
+    final subtaskProgressAsync =
+        ref.watch(subtaskProgressByTaskProvider(filter));
+    final subtaskProgressByTask =
+        subtaskProgressAsync.value ?? const <String, SubtaskProgress>{};
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).tasks)),
@@ -115,6 +121,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                           return TaskTile(
                             task: task,
                             contacts: links,
+                            subtaskProgress: subtaskProgressByTask[task.id],
                             onTap: () => widget.onOpenTask?.call(task.id),
                             onToggleDone: (done) async {
                               final repo = ref.read(taskRepositoryProvider);

@@ -145,6 +145,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editTask => 'Edit Task';
 
   @override
+  String get edit => 'Edit';
+
+  @override
+  String get markDone => 'Mark done';
+
+  @override
+  String get markTodo => 'Back to to-do';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get subtasks => 'Subtasks';
+
+  @override
+  String subtaskProgress(int done, int total) {
+    return '$done/$total';
+  }
+
+  @override
+  String get subtaskHint => 'Type a subtask and press Enter...';
+
+  @override
+  String get noSubtasks => 'No subtasks yet';
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get addComment => 'Add comment';
+
+  @override
+  String get commentHint => 'Write a comment...';
+
+  @override
+  String get noComments => 'No comments yet';
+
+  @override
+  String get taskNotFound => 'Task not found';
+
+  @override
   String get save => 'Save';
 
   @override

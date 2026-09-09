@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../contacts/contacts.dart' as contacts_feature;
+import '../../../contacts/domain/contact.dart';
 import '../../../../l10n/app_localizations.dart';
 
 import '../../domain/task.dart';
@@ -63,6 +64,11 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
     final l10n = AppLocalizations.of(context);
 
+    final allContacts = _isNew
+        ? ref.watch(contacts_feature.contactListProvider(null)).value ??
+            const <Contact>[]
+        : const <Contact>[];
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isNew ? l10n.newTask : l10n.editTask),
@@ -82,7 +88,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                       l10n.errorWithValue(taskAsync.error.toString()),
                     ),
                   )
-                : _buildForm(context, form, formNotifier),
+                : _buildForm(context, form, formNotifier, allContacts),
           ),
           const Divider(height: 1),
           SafeArea(
@@ -93,10 +99,16 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   const Spacer(),
                   FilledButton(
                     onPressed: () async {
-                      final saved = await formNotifier.save();
-                      if (saved && context.mounted) {
-                        widget.onSaved?.call();
-                        Navigator.maybePop(context);
+                      try {
+                        final saved = await formNotifier.save();
+                        if (saved && context.mounted) {
+                          widget.onSaved?.call();
+                          Navigator.maybePop(context);
+                        }
+                      } catch (_) {
+                        // Persistence failed; keep the form open so the user
+                        // can retry. The atomic repository write guarantees no
+                        // partial data was committed.
                       }
                     },
                     child: Text(l10n.save),
@@ -114,6 +126,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     BuildContext context,
     TaskFormState form,
     TaskForm formController,
+    List<Contact> allContacts,
   ) {
     final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
@@ -162,7 +175,41 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
           ),
           if (_taskId != null) ...[
             const SizedBox(height: 24),
-            _ContactsSection(taskId: _taskId!),
+            _ContactsSection(
+              contactsAsync:
+                  ref.watch(taskContactsManagerProvider(_taskId!)),
+              onAttachExisting: (id) => ref
+                  .read(taskContactsManagerProvider(_taskId!).notifier)
+                  .attach(id),
+              onCreateAndLink: (contact) async => ref
+                  .read(taskContactsManagerProvider(_taskId!).notifier)
+                  .attach(contact.id),
+              onDetach: (id) => ref
+                  .read(taskContactsManagerProvider(_taskId!).notifier)
+                  .detach(id),
+            ),
+          ] else ...[
+            const SizedBox(height: 24),
+            _ContactsSection(
+              contactsAsync: AsyncData(
+                form.contactIds
+                    .map((id) {
+                      for (final c in form.draftContacts) {
+                        if (c.id == id) return c;
+                      }
+                      for (final c in allContacts) {
+                        if (c.id == id) return c;
+                      }
+                      return null;
+                    })
+                    .whereType<Contact>()
+                    .toList(),
+              ),
+              onAttachExisting: (id) async => formController.attachContact(id),
+              onCreateAndLink: (contact) async =>
+                  formController.linkNewContact(contact),
+              onDetach: (id) async => formController.detachContact(id),
+            ),
           ],
         ],
       ),
@@ -170,16 +217,22 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   }
 }
 
-class _ContactsSection extends ConsumerWidget {
-  const _ContactsSection({required this.taskId});
+class _ContactsSection extends StatelessWidget {
+  const _ContactsSection({
+    required this.contactsAsync,
+    required this.onAttachExisting,
+    required this.onCreateAndLink,
+    required this.onDetach,
+  });
 
-  final String taskId;
+  final AsyncValue<List<Contact>> contactsAsync;
+  final Future<void> Function(String contactId) onAttachExisting;
+  final Future<void> Function(Contact contact) onCreateAndLink;
+  final Future<void> Function(String contactId) onDetach;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final contactsAsync = ref.watch(taskContactsManagerProvider(taskId));
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -190,7 +243,7 @@ class _ContactsSection extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.add, size: 20),
               tooltip: l10n.linkContact,
-              onPressed: () => _showLinkContactSheet(context, ref),
+              onPressed: () => _showLinkContactSheet(context),
             ),
           ],
         ),
@@ -216,13 +269,7 @@ class _ContactsSection extends ConsumerWidget {
                           ),
                         ),
                         label: Text(contact.name),
-                        onDeleted: () {
-                          ref
-                              .read(
-                                taskContactsManagerProvider(taskId).notifier,
-                              )
-                              .detach(contact.id);
-                        },
+                        onDeleted: () => onDetach(contact.id),
                       ),
                   ],
                 ),
@@ -236,19 +283,32 @@ class _ContactsSection extends ConsumerWidget {
     );
   }
 
-  void _showLinkContactSheet(BuildContext context, WidgetRef ref) {
+  void _showLinkContactSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _LinkContactSheet(taskId: taskId),
+      builder: (context) => _LinkContactSheet(
+        linkedIds: contactsAsync.value
+                ?.map((c) => c.id)
+                .toSet() ??
+            const <String>{},
+        onAttachExisting: onAttachExisting,
+        onCreateAndLink: onCreateAndLink,
+      ),
     );
   }
 }
 
 class _LinkContactSheet extends ConsumerStatefulWidget {
-  const _LinkContactSheet({required this.taskId});
+  const _LinkContactSheet({
+    required this.linkedIds,
+    required this.onAttachExisting,
+    required this.onCreateAndLink,
+  });
 
-  final String taskId;
+  final Set<String> linkedIds;
+  final Future<void> Function(String contactId) onAttachExisting;
+  final Future<void> Function(Contact contact) onCreateAndLink;
 
   @override
   ConsumerState<_LinkContactSheet> createState() => _LinkContactSheetState();
@@ -273,10 +333,6 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
   @override
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(contacts_feature.contactListProvider(null));
-    final linkedAsync = ref.watch(taskContactsManagerProvider(widget.taskId));
-    final linkedIds = linkedAsync.hasValue
-        ? linkedAsync.value!.map((c) => c.id).toSet()
-        : <String>{};
     final l10n = AppLocalizations.of(context);
 
     return Padding(
@@ -301,7 +357,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
               child: contactsAsync.when(
                 data: (contacts) {
                   final available = contacts
-                      .where((c) => !linkedIds.contains(c.id))
+                      .where((c) => !widget.linkedIds.contains(c.id))
                       .toList();
                   if (available.isEmpty) {
                     return Center(
@@ -346,14 +402,9 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                             ? Text(contact.role!)
                             : null,
                         trailing: const Icon(Icons.add_link),
-                        onTap: () {
-                          ref
-                              .read(
-                                taskContactsManagerProvider(widget.taskId)
-                                    .notifier,
-                              )
-                              .attach(contact.id);
-                          Navigator.pop(context);
+                        onTap: () async {
+                          await widget.onAttachExisting(contact.id);
+                          if (context.mounted) Navigator.pop(context);
                         },
                       );
                     },
@@ -427,11 +478,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                           ? _phoneController.text.trim()
                           : null,
                     );
-                    await ref
-                        .read(
-                          taskContactsManagerProvider(widget.taskId).notifier,
-                        )
-                        .attach(contact.id);
+                    await widget.onCreateAndLink(contact);
                     if (context.mounted) Navigator.pop(context);
                   },
                   child: Text(l10n.createAndLink),
@@ -513,8 +560,33 @@ class _DueDateField extends StatelessWidget {
             ),
             if (value != null) ...[
               const SizedBox(width: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.access_time),
+                label: Text(
+                  '${value!.hour.toString().padLeft(2, '0')}:${value!.minute.toString().padLeft(2, '0')}',
+                ),
+                onPressed: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(value!),
+                  );
+                  if (picked != null) {
+                    onChanged(
+                      DateTime(
+                        value!.year,
+                        value!.month,
+                        value!.day,
+                        picked.hour,
+                        picked.minute,
+                      ),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.clear),
+                tooltip: l10n.noDueDate,
                 onPressed: () => onChanged(null),
               ),
             ],

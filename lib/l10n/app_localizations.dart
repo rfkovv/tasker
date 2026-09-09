@@ -362,6 +362,84 @@ abstract class AppLocalizations {
   /// **'Edit Task'**
   String get editTask;
 
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @markDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark done'**
+  String get markDone;
+
+  /// No description provided for @markTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to to-do'**
+  String get markTodo;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @subtasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtasks'**
+  String get subtasks;
+
+  /// No description provided for @subtaskProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done}/{total}'**
+  String subtaskProgress(int done, int total);
+
+  /// No description provided for @subtaskHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a subtask and press Enter...'**
+  String get subtaskHint;
+
+  /// No description provided for @noSubtasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No subtasks yet'**
+  String get noSubtasks;
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @addComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add comment'**
+  String get addComment;
+
+  /// No description provided for @commentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment...'**
+  String get commentHint;
+
+  /// No description provided for @noComments.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get noComments;
+
+  /// No description provided for @taskNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Task not found'**
+  String get taskNotFound;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:

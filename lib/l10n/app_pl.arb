@@ -51,6 +51,29 @@
   "relevantPersons": "Osoby istotne",
   "newTask": "Nowe zadanie",
   "editTask": "Edytuj zadanie",
+  "edit": "Edytuj",
+  "markDone": "Oznacz jako zrobione",
+  "markTodo": "Przywróć do zrobienia",
+  "delete": "Usuń",
+  "subtasks": "Podzadania",
+  "subtaskProgress": "{done}/{total}",
+  "@subtaskProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "subtaskHint": "Wpisz podzadanie i naciśnij Enter...",
+  "noSubtasks": "Brak podzadań",
+  "comments": "Komentarze",
+  "addComment": "Dodaj komentarz",
+  "commentHint": "Napisz komentarz...",
+  "noComments": "Brak komentarzy",
+  "taskNotFound": "Nie znaleziono zadania",
   "save": "Zapisz",
   "titleLabel": "Tytuł",
   "descriptionLabel": "Opis",

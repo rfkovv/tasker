@@ -1598,8 +1598,25 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, taskId, body, createdAt];
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    body,
+    createdAt,
+    deletedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1641,6 +1658,12 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -1666,6 +1689,10 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -1680,11 +1707,13 @@ class Comment extends DataClass implements Insertable<Comment> {
   final String taskId;
   final String body;
   final int createdAt;
+  final int? deletedAt;
   const Comment({
     required this.id,
     required this.taskId,
     required this.body,
     required this.createdAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1693,6 +1722,9 @@ class Comment extends DataClass implements Insertable<Comment> {
     map['task_id'] = Variable<String>(taskId);
     map['body'] = Variable<String>(body);
     map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
     return map;
   }
 
@@ -1702,6 +1734,9 @@ class Comment extends DataClass implements Insertable<Comment> {
       taskId: Value(taskId),
       body: Value(body),
       createdAt: Value(createdAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -1715,6 +1750,7 @@ class Comment extends DataClass implements Insertable<Comment> {
       taskId: serializer.fromJson<String>(json['taskId']),
       body: serializer.fromJson<String>(json['body']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
     );
   }
   @override
@@ -1725,6 +1761,7 @@ class Comment extends DataClass implements Insertable<Comment> {
       'taskId': serializer.toJson<String>(taskId),
       'body': serializer.toJson<String>(body),
       'createdAt': serializer.toJson<int>(createdAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
     };
   }
 
@@ -1733,11 +1770,13 @@ class Comment extends DataClass implements Insertable<Comment> {
     String? taskId,
     String? body,
     int? createdAt,
+    Value<int?> deletedAt = const Value.absent(),
   }) => Comment(
     id: id ?? this.id,
     taskId: taskId ?? this.taskId,
     body: body ?? this.body,
     createdAt: createdAt ?? this.createdAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Comment copyWithCompanion(CommentsCompanion data) {
     return Comment(
@@ -1745,6 +1784,7 @@ class Comment extends DataClass implements Insertable<Comment> {
       taskId: data.taskId.present ? data.taskId.value : this.taskId,
       body: data.body.present ? data.body.value : this.body,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -1754,13 +1794,14 @@ class Comment extends DataClass implements Insertable<Comment> {
           ..write('id: $id, ')
           ..write('taskId: $taskId, ')
           ..write('body: $body, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, taskId, body, createdAt);
+  int get hashCode => Object.hash(id, taskId, body, createdAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1768,7 +1809,8 @@ class Comment extends DataClass implements Insertable<Comment> {
           other.id == this.id &&
           other.taskId == this.taskId &&
           other.body == this.body &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class CommentsCompanion extends UpdateCompanion<Comment> {
@@ -1776,12 +1818,14 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
   final Value<String> taskId;
   final Value<String> body;
   final Value<int> createdAt;
+  final Value<int?> deletedAt;
   final Value<int> rowid;
   const CommentsCompanion({
     this.id = const Value.absent(),
     this.taskId = const Value.absent(),
     this.body = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CommentsCompanion.insert({
@@ -1789,6 +1833,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     required String taskId,
     required String body,
     required int createdAt,
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        taskId = Value(taskId),
@@ -1799,6 +1844,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     Expression<String>? taskId,
     Expression<String>? body,
     Expression<int>? createdAt,
+    Expression<int>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1806,6 +1852,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
       if (taskId != null) 'task_id': taskId,
       if (body != null) 'body': body,
       if (createdAt != null) 'created_at': createdAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1815,6 +1862,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     Value<String>? taskId,
     Value<String>? body,
     Value<int>? createdAt,
+    Value<int?>? deletedAt,
     Value<int>? rowid,
   }) {
     return CommentsCompanion(
@@ -1822,6 +1870,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
       taskId: taskId ?? this.taskId,
       body: body ?? this.body,
       createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1841,6 +1890,9 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1854,6 +1906,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
           ..write('taskId: $taskId, ')
           ..write('body: $body, ')
           ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3045,6 +3098,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final ContactsDao contactsDao = ContactsDao(this as AppDatabase);
+  late final SubtasksDao subtasksDao = SubtasksDao(this as AppDatabase);
+  late final CommentsDao commentsDao = CommentsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4677,6 +4732,7 @@ typedef $$CommentsTableCreateCompanionBuilder = CommentsCompanion Function({
   required String taskId,
   required String body,
   required int createdAt,
+  Value<int?> deletedAt,
   Value<int> rowid,
 });
 typedef $$CommentsTableUpdateCompanionBuilder = CommentsCompanion Function({
@@ -4684,6 +4740,7 @@ typedef $$CommentsTableUpdateCompanionBuilder = CommentsCompanion Function({
   Value<String> taskId,
   Value<String> body,
   Value<int> createdAt,
+  Value<int?> deletedAt,
   Value<int> rowid,
 });
 
@@ -4730,6 +4787,11 @@ class $$CommentsTableFilterComposer
 
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4781,6 +4843,11 @@ class $$CommentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TasksTableOrderingComposer get taskId {
     final $$TasksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4822,6 +4889,9 @@ class $$CommentsTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   $$TasksTableAnnotationComposer get taskId {
     final $$TasksTableAnnotationComposer composer = $composerBuilder(
@@ -4879,12 +4949,14 @@ class $$CommentsTableTableManager
                 Value<String> taskId = const Value.absent(),
                 Value<String> body = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommentsCompanion(
                 id: id,
                 taskId: taskId,
                 body: body,
                 createdAt: createdAt,
+                deletedAt: deletedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4893,12 +4965,14 @@ class $$CommentsTableTableManager
                 required String taskId,
                 required String body,
                 required int createdAt,
+                Value<int?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommentsCompanion.insert(
                 id: id,
                 taskId: taskId,
                 body: body,
                 createdAt: createdAt,
+                deletedAt: deletedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -8,7 +8,7 @@ import 'task_repository_impl.dart';
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   final db = ref.watch(databaseProvider);
   return TaskRepositoryImpl(
-    dao: db.tasksDao,
+    database: db,
     ownerIdLoader: () async => await ref.read(ownerIdProvider.future),
   );
 });
