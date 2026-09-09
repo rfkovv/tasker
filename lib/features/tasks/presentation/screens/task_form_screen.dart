@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../contacts/data/contact_repository_provider.dart';
-import '../../../contacts/presentation/providers/contact_list_provider.dart';
+import '../../../contacts/contacts.dart' as contacts_feature;
 import '../../../../l10n/app_localizations.dart';
 
 import '../../domain/task.dart';
@@ -78,12 +77,12 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             child: taskAsync is AsyncLoading
                 ? const Center(child: CircularProgressIndicator())
                 : taskAsync is AsyncError
-                    ? Center(
-                        child: Text(
-                          l10n.errorWithValue(taskAsync.error.toString()),
-                        ),
-                      )
-                    : _buildForm(context, form, formNotifier),
+                ? Center(
+                    child: Text(
+                      l10n.errorWithValue(taskAsync.error.toString()),
+                    ),
+                  )
+                : _buildForm(context, form, formNotifier),
           ),
           const Divider(height: 1),
           SafeArea(
@@ -200,9 +199,8 @@ class _ContactsSection extends ConsumerWidget {
           data: (contacts) => contacts.isEmpty
               ? Text(
                   l10n.noContactsLinked,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
                 )
               : Wrap(
                   spacing: 8,
@@ -221,7 +219,8 @@ class _ContactsSection extends ConsumerWidget {
                         onDeleted: () {
                           ref
                               .read(
-                                  taskContactsManagerProvider(taskId).notifier)
+                                taskContactsManagerProvider(taskId).notifier,
+                              )
                               .detach(contact.id);
                         },
                       ),
@@ -273,7 +272,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final contactsAsync = ref.watch(contactListProvider(null));
+    final contactsAsync = ref.watch(contacts_feature.contactListProvider(null));
     final linkedAsync = ref.watch(taskContactsManagerProvider(widget.taskId));
     final linkedIds = linkedAsync.hasValue
         ? linkedAsync.value!.map((c) => c.id).toSet()
@@ -291,16 +290,19 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.linkContactTitle,
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            l10n.linkContactTitle,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 16),
           if (!_showInlineCreate) ...[
             SizedBox(
               height: 300,
               child: contactsAsync.when(
                 data: (contacts) {
-                  final available =
-                      contacts.where((c) => !linkedIds.contains(c.id)).toList();
+                  final available = contacts
+                      .where((c) => !linkedIds.contains(c.id))
+                      .toList();
                   if (available.isEmpty) {
                     return Center(
                       child: Column(
@@ -346,8 +348,10 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                         trailing: const Icon(Icons.add_link),
                         onTap: () {
                           ref
-                              .read(taskContactsManagerProvider(widget.taskId)
-                                  .notifier)
+                              .read(
+                                taskContactsManagerProvider(widget.taskId)
+                                    .notifier,
+                              )
                               .attach(contact.id);
                           Navigator.pop(context);
                         },
@@ -355,11 +359,9 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                     },
                   );
                 },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                    child: Text(l10n.errorWithValue(e.toString())),
-                  ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) =>
+                    Center(child: Text(l10n.errorWithValue(e.toString()))),
               ),
             ),
           ] else ...[
@@ -401,8 +403,7 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
             Row(
               children: [
                 TextButton(
-                  onPressed: () =>
-                      setState(() => _showInlineCreate = false),
+                  onPressed: () => setState(() => _showInlineCreate = false),
                   child: Text(l10n.back),
                 ),
                 const Spacer(),
@@ -411,7 +412,9 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                     final name = _nameController.text.trim();
                     if (name.isEmpty) return;
 
-                    final repo = ref.read(contactRepositoryProvider);
+                    final repo = ref.read(
+                      contacts_feature.contactRepositoryProvider,
+                    );
                     final contact = await repo.create(
                       name: name,
                       role: _roleController.text.trim().isNotEmpty
@@ -426,7 +429,8 @@ class _LinkContactSheetState extends ConsumerState<_LinkContactSheet> {
                     );
                     await ref
                         .read(
-                            taskContactsManagerProvider(widget.taskId).notifier)
+                          taskContactsManagerProvider(widget.taskId).notifier,
+                        )
                         .attach(contact.id);
                     if (context.mounted) Navigator.pop(context);
                   },
@@ -453,8 +457,10 @@ class _PrioritySelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.filterPriority,
-            style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          l10n.filterPriority,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         const SizedBox(height: 8),
         SegmentedButton<TaskPriority>(
           segments: [
@@ -543,10 +549,7 @@ class _TagsField extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final tag in tags)
-              InputChip(
-                label: Text(tag),
-                onDeleted: () => onAdd(tag),
-              ),
+              InputChip(label: Text(tag), onDeleted: () => onAdd(tag)),
           ],
         ),
         const SizedBox(height: 8),

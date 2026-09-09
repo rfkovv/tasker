@@ -214,6 +214,34 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
+  testWidgets('FAB reacts to list scrollability changes', (tester) async {
+    await makeWindowTall(tester);
+    await tester.pumpWidget(buildApp([
+      for (var i = 0; i < 30; i++)
+        buildTask(
+          id: '$i',
+          title: 'Task $i',
+          status: i == 0 ? TaskStatus.inProgress : TaskStatus.todo,
+        ),
+    ]));
+    await tester.pumpAndSettle();
+
+    final fab = find.byType(FloatingActionButton);
+    AnimatedOpacity wrapper() => tester.widget<AnimatedOpacity>(
+          find.ancestor(of: fab, matching: find.byType(AnimatedOpacity)),
+        );
+
+    expect(wrapper().opacity, 1);
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('In Progress'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Task 0'), findsOneWidget);
+    expect(wrapper().opacity, 0);
+  });
+
   testWidgets('filters tasks by status via dropdown', (tester) async {
     await makeWindowTall(tester);
     await tester.pumpWidget(buildApp([

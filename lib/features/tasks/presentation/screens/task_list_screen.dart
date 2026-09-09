@@ -33,9 +33,42 @@ class TaskListScreen extends ConsumerStatefulWidget {
 }
 
 class _TaskListScreenState extends ConsumerState<TaskListScreen> {
+  final _scrollController = ScrollController();
   bool _showFab = false;
+  bool _checkScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateFabVisibility);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _handleAddTask() => widget.onOpenTask?.call('new');
+
+  void _scheduleScrollabilityCheck() {
+    if (_checkScheduled) return;
+    _checkScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkScheduled = false;
+      _updateFabVisibility();
+    });
+  }
+
+  void _updateFabVisibility() {
+    if (!mounted) return;
+    final scrollable =
+        _scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0;
+    if (scrollable != _showFab) {
+      setState(() => _showFab = scrollable);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,28 +79,20 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         contactsAsync.value ?? const <String, List<contacts_feature.Contact>>{};
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context).tasks),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).tasks)),
       body: Column(
         children: [
           const _FilterBar(),
           const Divider(height: 1),
           Expanded(
             child: tasksAsync.when(
-              data: (tasks) => Stack(
-                children: [
-                  Positioned.fill(
-                    child: NotificationListener<ScrollMetricsNotification>(
-                      onNotification: (notification) {
-                        final scrollable =
-                            notification.metrics.maxScrollExtent > 0;
-                        if (scrollable != _showFab && mounted) {
-                          setState(() => _showFab = scrollable);
-                        }
-                        return false;
-                      },
+              data: (tasks) {
+                _scheduleScrollabilityCheck();
+                return Stack(
+                  children: [
+                    Positioned.fill(
                       child: ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: tasks.isEmpty ? 2 : tasks.length + 1,
                         itemBuilder: (context, index) {
@@ -78,19 +103,15 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                                 child: _EmptyState(),
                               );
                             }
-                            return _FooterTile(
-                              onAddTask: _handleAddTask,
-                            );
+                            return _FooterTile(onAddTask: _handleAddTask);
                           }
                           if (index == tasks.length) {
-                            return _FooterTile(
-                              onAddTask: _handleAddTask,
-                            );
+                            return _FooterTile(onAddTask: _handleAddTask);
                           }
                           final task = tasks[index];
                           final links =
                               contactsByTask[task.id] ??
-                                  const <contacts_feature.Contact>[];
+                              const <contacts_feature.Contact>[];
                           return TaskTile(
                             task: task,
                             contacts: links,
@@ -106,24 +127,23 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                         },
                       ),
                     ),
-                  ),
-                  if (tasks.isNotEmpty)
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
-                      child: AnimatedOpacity(
-                        opacity: _showFab ? 1 : 0,
-                        duration: const Duration(milliseconds: 150),
-                        child: FloatingActionButton.small(
-                          onPressed: _showFab ? _handleAddTask : null,
-                          child: const Icon(Icons.add_task),
+                    if (tasks.isNotEmpty)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: AnimatedOpacity(
+                          opacity: _showFab ? 1 : 0,
+                          duration: const Duration(milliseconds: 150),
+                          child: FloatingActionButton.small(
+                            onPressed: _showFab ? _handleAddTask : null,
+                            child: const Icon(Icons.add_task),
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Text(
                   AppLocalizations.of(context).errorWithValue(e.toString()),
@@ -181,9 +201,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             AppLocalizations.of(context).noTasksHint,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: Theme.of(context).colorScheme.outline),
           ),
         ],
       ),
@@ -228,8 +247,8 @@ class _FilterBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final filter = ref.watch(taskFilterStateProvider);
-    final allTasks = ref.watch(taskListProvider(TaskFilter.none)).value ??
-        const <Task>[];
+    final allTasks =
+        ref.watch(taskListProvider(TaskFilter.none)).value ?? const <Task>[];
     final tags = (allTasks.expand((task) => task.tags)).toSet().toList()
       ..sort();
 
@@ -312,18 +331,12 @@ Future<void> _openFilterMenu(
       for (final tag in tags)
         PopupMenuItem(
           value: _TagFilterOption(tag),
-          child: _MenuValueRow(
-            selected: filter.tag == tag,
-            label: '#$tag',
-          ),
+          child: _MenuValueRow(selected: filter.tag == tag, label: '#$tag'),
         ),
     const PopupMenuDivider(),
     PopupMenuItem(
       value: const _HideDoneFilterOption(),
-      child: _MenuValueRow(
-        selected: filter.hideDone,
-        label: l10n.hideDone,
-      ),
+      child: _MenuValueRow(selected: filter.hideDone, label: l10n.hideDone),
     ),
     if (filter != TaskFilter.none) ...[
       const PopupMenuDivider(),
@@ -341,10 +354,7 @@ Future<void> _openFilterMenu(
     position: RelativeRect.fromRect(
       Rect.fromPoints(
         box.localToGlobal(Offset.zero, ancestor: overlay),
-        box.localToGlobal(
-          box.size.bottomRight(Offset.zero),
-          ancestor: overlay,
-        ),
+        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
       ),
       Offset.zero & overlay.size,
     ),
@@ -370,9 +380,7 @@ void _applyFilter(WidgetRef ref, _FilterOption option) {
         ),
       );
     case _TagFilterOption(:final tag):
-      notifier.setFilter(
-        filter.copyWith(tag: filter.tag == tag ? null : tag),
-      );
+      notifier.setFilter(filter.copyWith(tag: filter.tag == tag ? null : tag));
     case _HideDoneFilterOption():
       notifier.setFilter(filter.copyWith(hideDone: !filter.hideDone));
     case _ResetFilterOption():

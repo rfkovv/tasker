@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../contacts/data/contact_repository_provider.dart';
-import '../../../contacts/domain/contact.dart';
+import '../../../contacts/contacts.dart';
 
 part 'task_contacts_provider.g.dart';
 
@@ -25,8 +24,10 @@ class TaskContactsManager extends _$TaskContactsManager {
 
   Future<void> detach(String contactId) async {
     final current = state.value ?? <Contact>[];
-    final ids =
-        current.where((c) => c.id != contactId).map((c) => c.id).toList();
+    final ids = current
+        .where((c) => c.id != contactId)
+        .map((c) => c.id)
+        .toList();
     await _replace(ids);
   }
 
