@@ -70,6 +70,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetFilters => 'Reset filters';
 
   @override
+  String get filterNoDueDate => 'No due date';
+
+  @override
+  String get filterSort => 'Sort';
+
+  @override
+  String get sortNone => 'Default';
+
+  @override
+  String get sortDueAsc => 'Deadline: nearest first';
+
+  @override
+  String get sortDueDesc => 'Deadline: farthest first';
+
+  @override
+  String get sortCreatedDesc => 'Created: newest first';
+
+  @override
+  String get sortCreatedAsc => 'Created: oldest first';
+
+  @override
   String get statusTodo => 'To Do';
 
   @override

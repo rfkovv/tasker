@@ -245,6 +245,16 @@ final class _HideDoneFilterOption extends _FilterOption {
   const _HideDoneFilterOption();
 }
 
+final class _NoDueDateFilterOption extends _FilterOption {
+  const _NoDueDateFilterOption();
+}
+
+final class _SortOption extends _FilterOption {
+  const _SortOption(this.sort);
+
+  final TaskSort sort;
+}
+
 final class _ResetFilterOption extends _FilterOption {
   const _ResetFilterOption();
 }
@@ -273,7 +283,19 @@ class _FilterBar extends ConsumerWidget {
               label: Text(l10n.filter),
             ),
           ),
-          if (filter != TaskFilter.none) ...[
+          if (filter.sort != TaskSort.none)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Chip(
+                avatar: const Icon(Icons.swap_vert, size: 16),
+                label: Text(_sortLabel(context, filter.sort)),
+                visualDensity: VisualDensity.compact,
+                onDeleted: () => ref
+                    .read(taskFilterStateProvider.notifier)
+                    .setFilter(filter.copyWith(sort: TaskSort.none)),
+              ),
+            ),
+          if (filter != TaskFilter.none || filter.sort != TaskSort.none) ...[
             const SizedBox(width: 12),
             Expanded(
               child: Chip(
@@ -347,7 +369,27 @@ Future<void> _openFilterMenu(
       value: const _HideDoneFilterOption(),
       child: _MenuValueRow(selected: filter.hideDone, label: l10n.hideDone),
     ),
-    if (filter != TaskFilter.none) ...[
+    PopupMenuItem(
+      value: const _NoDueDateFilterOption(),
+      child: _MenuValueRow(
+        selected: filter.noDueDate,
+        label: l10n.filterNoDueDate,
+      ),
+    ),
+    const PopupMenuDivider(),
+    PopupMenuItem(
+      enabled: false,
+      child: Text(l10n.filterSort, style: sectionStyle),
+    ),
+    for (final sort in TaskSort.values)
+      PopupMenuItem(
+        value: _SortOption(sort),
+        child: _MenuValueRow(
+          selected: filter.sort == sort,
+          label: _sortLabel(context, sort),
+        ),
+      ),
+    if (filter != TaskFilter.none || filter.sort != TaskSort.none) ...[
       const PopupMenuDivider(),
       PopupMenuItem(
         value: const _ResetFilterOption(),
@@ -392,9 +434,24 @@ void _applyFilter(WidgetRef ref, _FilterOption option) {
       notifier.setFilter(filter.copyWith(tag: filter.tag == tag ? null : tag));
     case _HideDoneFilterOption():
       notifier.setFilter(filter.copyWith(hideDone: !filter.hideDone));
+    case _NoDueDateFilterOption():
+      notifier.setFilter(filter.copyWith(noDueDate: !filter.noDueDate));
+    case _SortOption(:final sort):
+      notifier.setFilter(filter.copyWith(sort: sort));
     case _ResetFilterOption():
       notifier.setFilter(TaskFilter.none);
   }
+}
+
+String _sortLabel(BuildContext context, TaskSort sort) {
+  final l10n = AppLocalizations.of(context);
+  return switch (sort) {
+    TaskSort.none => l10n.sortNone,
+    TaskSort.dueAsc => l10n.sortDueAsc,
+    TaskSort.dueDesc => l10n.sortDueDesc,
+    TaskSort.createdDesc => l10n.sortCreatedDesc,
+    TaskSort.createdAsc => l10n.sortCreatedAsc,
+  };
 }
 
 String _filterSummary(BuildContext context, TaskFilter filter) {
@@ -404,6 +461,7 @@ String _filterSummary(BuildContext context, TaskFilter filter) {
     if (filter.priority != null) taskPriorityLabel(context, filter.priority!),
     if (filter.tag != null) '#${filter.tag}',
     if (filter.hideDone) l10n.hideDone,
+    if (filter.noDueDate) l10n.filterNoDueDate,
   ];
   return parts.join(' · ');
 }
@@ -427,7 +485,13 @@ class _MenuValueRow extends StatelessWidget {
               : Colors.transparent,
         ),
         const SizedBox(width: 8),
-        Text(label),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
       ],
     );
   }

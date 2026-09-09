@@ -37,10 +37,11 @@ class TaskRepositoryImpl implements TaskRepository {
           if (filter.tag != null && !task.tags.contains(filter.tag)) {
             return false;
           }
+          if (filter.noDueDate && task.dueDate != null) return false;
           return true;
         })
             .toList();
-        return tasks;
+        return sortTasks(tasks, filter.sort);
       },
     );
   }

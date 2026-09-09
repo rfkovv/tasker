@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TaskFilter {
 
- TaskStatus? get status; TaskPriority? get priority; String? get tag; bool get hideDone;
+ TaskStatus? get status; TaskPriority? get priority; String? get tag; bool get hideDone; bool get noDueDate; TaskSort get sort;
 /// Create a copy of TaskFilter
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $TaskFilterCopyWith<TaskFilter> get copyWith => _$TaskFilterCopyWithImpl<TaskFil
 @override
 bool operator ==(Object other) {
   final _this = this as TaskFilter;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskFilter&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.priority, _this.priority) || other.priority == _this.priority)&&(identical(other.tag, _this.tag) || other.tag == _this.tag)&&(identical(other.hideDone, _this.hideDone) || other.hideDone == _this.hideDone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskFilter&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.priority, _this.priority) || other.priority == _this.priority)&&(identical(other.tag, _this.tag) || other.tag == _this.tag)&&(identical(other.hideDone, _this.hideDone) || other.hideDone == _this.hideDone)&&(identical(other.noDueDate, _this.noDueDate) || other.noDueDate == _this.noDueDate)&&(identical(other.sort, _this.sort) || other.sort == _this.sort));
 }
 
 
 @override
 int get hashCode {
   final _this = this as TaskFilter;
-  return Object.hash(runtimeType,_this.status,_this.priority,_this.tag,_this.hideDone);
+  return Object.hash(runtimeType,_this.status,_this.priority,_this.tag,_this.hideDone,_this.noDueDate,_this.sort);
 }
 
 @override
 String toString() {
   final _this = this as TaskFilter;
-  return 'TaskFilter(status: ${_this.status}, priority: ${_this.priority}, tag: ${_this.tag}, hideDone: ${_this.hideDone})';
+  return 'TaskFilter(status: ${_this.status}, priority: ${_this.priority}, tag: ${_this.tag}, hideDone: ${_this.hideDone}, noDueDate: ${_this.noDueDate}, sort: ${_this.sort})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $TaskFilterCopyWith<$Res>  {
   factory $TaskFilterCopyWith(TaskFilter value, $Res Function(TaskFilter) _then) = _$TaskFilterCopyWithImpl;
 @useResult
 $Res call({
- TaskStatus? status, TaskPriority? priority, String? tag, bool hideDone
+ TaskStatus? status, TaskPriority? priority, String? tag, bool hideDone, bool noDueDate, TaskSort sort
 });
 
 
@@ -68,13 +68,15 @@ class _$TaskFilterCopyWithImpl<$Res>
 
 /// Create a copy of TaskFilter
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? status = freezed,Object? priority = freezed,Object? tag = freezed,Object? hideDone = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? status = freezed,Object? priority = freezed,Object? tag = freezed,Object? hideDone = null,Object? noDueDate = null,Object? sort = null,}) {
   return _then(TaskFilter(
 status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as TaskStatus?,priority: freezed == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
 as TaskPriority?,tag: freezed == tag ? _self.tag : tag // ignore: cast_nullable_to_non_nullable
 as String?,hideDone: null == hideDone ? _self.hideDone : hideDone // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,noDueDate: null == noDueDate ? _self.noDueDate : noDueDate // ignore: cast_nullable_to_non_nullable
+as bool,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
+as TaskSort,
   ));
 }
 
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TaskStatus? status,  TaskPriority? priority,  String? tag,  bool hideDone)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TaskStatus? status,  TaskPriority? priority,  String? tag,  bool hideDone,  bool noDueDate,  TaskSort sort)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskFilter() when $default != null:
-return $default(_that.status,_that.priority,_that.tag,_that.hideDone);case _:
+return $default(_that.status,_that.priority,_that.tag,_that.hideDone,_that.noDueDate,_that.sort);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.status,_that.priority,_that.tag,_that.hideDone);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TaskStatus? status,  TaskPriority? priority,  String? tag,  bool hideDone)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TaskStatus? status,  TaskPriority? priority,  String? tag,  bool hideDone,  bool noDueDate,  TaskSort sort)  $default,) {final _that = this;
 switch (_that) {
 case _TaskFilter():
-return $default(_that.status,_that.priority,_that.tag,_that.hideDone);case _:
+return $default(_that.status,_that.priority,_that.tag,_that.hideDone,_that.noDueDate,_that.sort);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +202,10 @@ return $default(_that.status,_that.priority,_that.tag,_that.hideDone);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TaskStatus? status,  TaskPriority? priority,  String? tag,  bool hideDone)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TaskStatus? status,  TaskPriority? priority,  String? tag,  bool hideDone,  bool noDueDate,  TaskSort sort)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskFilter() when $default != null:
-return $default(_that.status,_that.priority,_that.tag,_that.hideDone);case _:
+return $default(_that.status,_that.priority,_that.tag,_that.hideDone,_that.noDueDate,_that.sort);case _:
   return null;
 
 }
@@ -215,13 +217,15 @@ return $default(_that.status,_that.priority,_that.tag,_that.hideDone);case _:
 
 
 class _TaskFilter extends TaskFilter {
-  const _TaskFilter({this.status, this.priority, this.tag, this.hideDone = false}): super._();
+  const _TaskFilter({this.status, this.priority, this.tag, this.hideDone = false, this.noDueDate = false, this.sort = TaskSort.none}): super._();
   
 
 @override final  TaskStatus? status;
 @override final  TaskPriority? priority;
 @override final  String? tag;
 @override@JsonKey() final  bool hideDone;
+@override@JsonKey() final  bool noDueDate;
+@override@JsonKey() final  TaskSort sort;
 
 /// Create a copy of TaskFilter
 /// with the given fields replaced by the non-null parameter values.
@@ -233,18 +237,18 @@ _$TaskFilterCopyWith<_TaskFilter> get copyWith => __$TaskFilterCopyWithImpl<_Tas
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskFilter&&(identical(other.status, status) || other.status == status)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.tag, tag) || other.tag == tag)&&(identical(other.hideDone, hideDone) || other.hideDone == hideDone));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskFilter&&(identical(other.status, status) || other.status == status)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.tag, tag) || other.tag == tag)&&(identical(other.hideDone, hideDone) || other.hideDone == hideDone)&&(identical(other.noDueDate, noDueDate) || other.noDueDate == noDueDate)&&(identical(other.sort, sort) || other.sort == sort));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,status,priority,tag,hideDone);
+    return Object.hash(runtimeType,status,priority,tag,hideDone,noDueDate,sort);
 }
 
 @override
 String toString() {
-    return 'TaskFilter(status: $status, priority: $priority, tag: $tag, hideDone: $hideDone)';
+    return 'TaskFilter(status: $status, priority: $priority, tag: $tag, hideDone: $hideDone, noDueDate: $noDueDate, sort: $sort)';
 }
 
 
@@ -255,7 +259,7 @@ abstract mixin class _$TaskFilterCopyWith<$Res> implements $TaskFilterCopyWith<$
   factory _$TaskFilterCopyWith(_TaskFilter value, $Res Function(_TaskFilter) _then) = __$TaskFilterCopyWithImpl;
 @override @useResult
 $Res call({
- TaskStatus? status, TaskPriority? priority, String? tag, bool hideDone
+ TaskStatus? status, TaskPriority? priority, String? tag, bool hideDone, bool noDueDate, TaskSort sort
 });
 
 
@@ -272,13 +276,15 @@ class __$TaskFilterCopyWithImpl<$Res>
 
 /// Create a copy of TaskFilter
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? status = freezed,Object? priority = freezed,Object? tag = freezed,Object? hideDone = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? status = freezed,Object? priority = freezed,Object? tag = freezed,Object? hideDone = null,Object? noDueDate = null,Object? sort = null,}) {
   return _then(_TaskFilter(
 status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as TaskStatus?,priority: freezed == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
 as TaskPriority?,tag: freezed == tag ? _self.tag : tag // ignore: cast_nullable_to_non_nullable
 as String?,hideDone: null == hideDone ? _self.hideDone : hideDone // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,noDueDate: null == noDueDate ? _self.noDueDate : noDueDate // ignore: cast_nullable_to_non_nullable
+as bool,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
+as TaskSort,
   ));
 }
 

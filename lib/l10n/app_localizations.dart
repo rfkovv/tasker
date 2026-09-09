@@ -212,6 +212,48 @@ abstract class AppLocalizations {
   /// **'Reset filters'**
   String get resetFilters;
 
+  /// No description provided for @filterNoDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No due date'**
+  String get filterNoDueDate;
+
+  /// No description provided for @filterSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get filterSort;
+
+  /// No description provided for @sortNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get sortNone;
+
+  /// No description provided for @sortDueAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Deadline: nearest first'**
+  String get sortDueAsc;
+
+  /// No description provided for @sortDueDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Deadline: farthest first'**
+  String get sortDueDesc;
+
+  /// No description provided for @sortCreatedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: newest first'**
+  String get sortCreatedDesc;
+
+  /// No description provided for @sortCreatedAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: oldest first'**
+  String get sortCreatedAsc;
+
   /// No description provided for @statusTodo.
   ///
   /// In en, this message translates to:

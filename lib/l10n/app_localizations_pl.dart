@@ -71,6 +71,27 @@ class AppLocalizationsPl extends AppLocalizations {
   String get resetFilters => 'Wyczyść filtry';
 
   @override
+  String get filterNoDueDate => 'Bez terminu';
+
+  @override
+  String get filterSort => 'Sortowanie';
+
+  @override
+  String get sortNone => 'Domyślne';
+
+  @override
+  String get sortDueAsc => 'Termin: najbliższe pierwsze';
+
+  @override
+  String get sortDueDesc => 'Termin: najdalsze pierwsze';
+
+  @override
+  String get sortCreatedDesc => 'Utworzone: najnowsze pierwsze';
+
+  @override
+  String get sortCreatedAsc => 'Utworzone: najstarsze pierwsze';
+
+  @override
   String get statusTodo => 'Do zrobienia';
 
   @override

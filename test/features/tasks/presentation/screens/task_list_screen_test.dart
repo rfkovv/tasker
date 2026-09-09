@@ -31,9 +31,10 @@ class FakeTaskRepository implements TaskRepository {
       }
       if (filter.hideDone && t.status == TaskStatus.done) return false;
       if (filter.tag != null && !t.tags.contains(filter.tag)) return false;
+      if (filter.noDueDate && t.dueDate != null) return false;
       return true;
     }).toList();
-    return Stream.value(filtered);
+    return Stream.value(sortTasks(filtered, filter.sort));
   }
 
   @override
@@ -131,18 +132,23 @@ Task buildTask({
   TaskStatus status = TaskStatus.todo,
   TaskPriority priority = TaskPriority.medium,
   List<String> tags = const [],
+  DateTime? dueDate,
+  DateTime? createdAt,
 }) {
-  final now = DateTime.now();
+  final now = creator(createdAt);
   return Task(
     id: id ?? 'id',
     title: title,
     tags: tags,
     priority: priority,
     status: status,
+    dueDate: dueDate,
     createdAt: now,
     updatedAt: now,
   );
 }
+
+DateTime creator(DateTime? createdAt) => createdAt ?? DateTime.now();
 
 Widget buildApp(
   List<Task> tasks, {
@@ -391,5 +397,117 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  testWidgets('No due date filter shows only tasks without a due date',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildTask(id: '1', title: 'Undated'),
+      buildTask(
+        id: '2',
+        title: 'Dated',
+        dueDate: DateTime(2026, 1, 5),
+      ),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('No due date'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Undated'), findsOneWidget);
+    expect(find.text('Dated'), findsNothing);
+    expect(find.textContaining('No due date'), findsOneWidget);
+  });
+
+  testWidgets('sort by deadline nearest first orders tiles', (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildTask(id: 'soon', title: 'Soon', dueDate: DateTime(2026, 2, 1)),
+      buildTask(id: 'over', title: 'Overdue', dueDate: DateTime(2026, 1, 1)),
+      buildTask(id: 'far', title: 'Far', dueDate: DateTime(2026, 4, 1)),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deadline: nearest first'));
+    await tester.pumpAndSettle();
+
+    final tiles = tester
+        .widgetList<TaskTile>(find.byType(TaskTile))
+        .map((t) => t.task.title)
+        .toList();
+    expect(tiles, ['Overdue', 'Soon', 'Far']);
+    // Active sort badge shown next to the Filter button.
+    expect(find.text('Deadline: nearest first'), findsOneWidget);
+  });
+
+  testWidgets('sort and no-due-date filter combine',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildTask(id: 'dated', title: 'Dated', dueDate: DateTime(2026, 1, 1)),
+      buildTask(id: 'u1', title: 'Unsigned one'),
+      buildTask(id: 'u2', title: 'Unsigned two'),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('No due date'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deadline: nearest first'));
+    await tester.pumpAndSettle();
+
+    // Only undated remain; both sort badges/active chips visible.
+    expect(find.text('Dated'), findsNothing);
+    expect(find.text('Unsigned one'), findsOneWidget);
+    expect(find.text('Unsigned two'), findsOneWidget);
+  });
+
+  testWidgets('reset clears sort badge and restores full list',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildTask(id: 'a', title: 'A', dueDate: DateTime(2026, 1, 1)),
+      buildTask(id: 'b', title: 'B', dueDate: DateTime(2026, 2, 1)),
+    ]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deadline: farthest first'));
+    await tester.pumpAndSettle();
+    expect(find.text('Deadline: farthest first'), findsOneWidget);
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset filters'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Deadline: farthest first'), findsNothing);
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
   });
 }
