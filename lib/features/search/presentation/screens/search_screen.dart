@@ -46,7 +46,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       onOpenTask(id);
       return;
     }
-    context.push('/tasks/$id');
+    context.pushReplacement('/tasks/$id');
   }
 
   void _openContact(String id) {
@@ -55,23 +55,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       onOpenContact(id);
       return;
     }
-    context.push('/contacts/$id');
+    context.pushReplacement('/contacts/$id');
   }
 
   void _showAllTasks(String query) {
     // Seed through the route so the task board applies the text filter while
     // it is mounted and watching the (autoDispose) filter state.
-    context.go('/?q=${Uri.encodeQueryComponent(query.trim())}');
+    context.pushReplacement('/?q=${Uri.encodeQueryComponent(query.trim())}');
   }
 
   void _showAllContacts() {
-    context.go('/contacts');
+    context.pushReplacement('/contacts');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          key: const Key('search-back-button'),
+          icon: const Icon(Icons.arrow_back),
+          tooltip: l10n.back,
+          onPressed: () {
+            if (context.canPop()) context.pop();
+          },
+        ),
         titleSpacing: 8,
         title: TextField(
           controller: _controller,
@@ -79,7 +88,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onChanged: _onChanged,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            hintText: AppLocalizations.of(context).searchHint,
+            hintText: l10n.searchHint,
             isDense: true,
             border: InputBorder.none,
           ),

@@ -109,7 +109,10 @@ class _GlobalSearchShortcutState extends State<_GlobalSearchShortcut> {
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.keyK &&
         HardwareKeyboard.instance.isControlPressed) {
-      context.go('/search');
+      final decorated = GoRouterState.of(context).uri.path == '/search';
+      if (!decorated) {
+        context.push('/search');
+      }
       return true;
     }
     return false;

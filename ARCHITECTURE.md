@@ -39,6 +39,13 @@ Dev environment: Linux.
   moduł i baza danych nadal "contacts" (nie zmieniamy modelu)
 - Add task / Add contact: ostatnia pozycja listy; FAB (prawy dolny róg)
   tylko gdy lista przekracza wysokość okna
+- Layout dwupanelowy (lista | kalendarz) zależy WYŁĄCZNIE od
+  rozmiaru okna; stany listy (filtry, sortowanie, pusty wynik)
+  nigdy nie wpływają na obecność panelu kalendarza
+- Global search: jedna współdzielona instancja UI (overlay + Ctrl+K
+  jako skrót do tej samej instancji); przycisk powrotu obowiązkowy;
+  otwarcie wyniku zamyka wyszukiwanie i nawiguje standardowo
+  (bez równoległych tras/overlay-i)
 
 ## Stack
 

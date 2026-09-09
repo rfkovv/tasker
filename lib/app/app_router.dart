@@ -13,10 +13,6 @@ import 'app_shell.dart';
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/search',
-      builder: (context, state) => const SearchScreen(),
-    ),
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
@@ -83,6 +79,10 @@ final appRouter = GoRouter(
               onSaved: () => context.go('/contacts'),
             );
           },
+        ),
+        GoRoute(
+          path: '/search',
+          builder: (context, state) => const SearchScreen(),
         ),
         GoRoute(
           path: '/settings',

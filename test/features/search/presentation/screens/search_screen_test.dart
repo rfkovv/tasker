@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
+import 'package:taskmaster/app/app_shell.dart';
 import 'package:taskmaster/features/contacts/contacts.dart' as contacts_feature;
 import 'package:taskmaster/features/contacts/domain/contact.dart';
 import 'package:taskmaster/features/contacts/domain/contact_repository.dart';
@@ -185,44 +187,53 @@ void main() {
     return GoRouter(
       initialLocation: initialLocation,
       routes: [
-        GoRoute(
-          path: '/search',
-          builder: (context, state) => const SearchScreen(),
-        ),
-        GoRoute(
-          path: '/',
-          builder: (context, state) {
-            final params = state.uri.queryParameters;
-            final contactId = params['contact'];
-            final query = params['q'];
-            final initialFilter = (contactId != null ||
-                        (query != null && query.trim().isNotEmpty))
-                ? TaskFilter(
-                    contactId: contactId,
-                    titleQuery: (query == null || query.trim().isEmpty)
-                        ? null
-                        : query.trim(),
-                  )
-                : null;
-            return TaskBoardScreen(
-              initialFilter: initialFilter,
-              onOpenTask: (id) => context.push('/tasks/$id'),
-            );
-          },
-        ),
-        GoRoute(
-          path: '/tasks/:id',
-          builder: (context, state) {
-            openedTask = state.pathParameters['id'];
-            return const Scaffold(body: Center(child: Text('task detail')));
-          },
-        ),
-        GoRoute(
-          path: '/contacts/:id',
-          builder: (context, state) {
-            openedContact = state.pathParameters['id'];
-            return const Scaffold(body: Center(child: Text('contact detail')));
-          },
+        ShellRoute(
+          builder: (context, state, child) => AppShell(child: child),
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, state) {
+                final params = state.uri.queryParameters;
+                final contactId = params['contact'];
+                final query = params['q'];
+                final initialFilter = (contactId != null ||
+                            (query != null && query.trim().isNotEmpty))
+                    ? TaskFilter(
+                        contactId: contactId,
+                        titleQuery: (query == null || query.trim().isEmpty)
+                            ? null
+                            : query.trim(),
+                      )
+                    : null;
+                return TaskBoardScreen(
+                  initialFilter: initialFilter,
+                  onOpenTask: (id) => context.push('/tasks/$id'),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/search',
+              builder: (context, state) => const SearchScreen(),
+            ),
+            GoRoute(
+              path: '/tasks/:id',
+              builder: (context, state) {
+                openedTask = state.pathParameters['id'];
+                return const Scaffold(
+                  body: Center(child: Text('task detail')),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/contacts/:id',
+              builder: (context, state) {
+                openedContact = state.pathParameters['id'];
+                return const Scaffold(
+                  body: Center(child: Text('contact detail')),
+                );
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -259,8 +270,20 @@ void main() {
   }
 
   Future<void> search(WidgetTester tester, String query) async {
-    await tester.enterText(find.byType(TextField), query);
+    final field = find.descendant(
+      of: find.byType(SearchScreen),
+      matching: find.byType(TextField),
+    );
+    expect(field, findsOneWidget);
+    await tester.enterText(field, query);
     await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> sendCtrlK(WidgetTester tester) async {
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
     await tester.pumpAndSettle();
   }
 
@@ -277,8 +300,12 @@ void main() {
 
     await search(tester, 'mil');
 
-    expect(find.text('Tasks'), findsOneWidget);
-    expect(find.text('People'), findsOneWidget);
+    Finder within(Finder f) => find.descendant(
+          of: find.byType(SearchScreen),
+          matching: f,
+        );
+    expect(within(find.text('Tasks')), findsOneWidget);
+    expect(within(find.text('People')), findsOneWidget);
     expect(find.text('Buy milk'), findsOneWidget);
     expect(find.text('Milk Man'), findsOneWidget);
     expect(find.text('Visit client'), findsNothing);
@@ -296,7 +323,12 @@ void main() {
 
     expect(find.byType(SearchScreen), findsOneWidget);
     expect(find.textContaining('No results'), findsOneWidget);
-    expect(find.text('Tasks'), findsNothing);
+    Finder within(Finder f) => find.descendant(
+          of: find.byType(SearchScreen),
+          matching: f,
+        );
+    expect(within(find.text('Tasks')), findsNothing);
+    expect(within(find.text('People')), findsNothing);
   });
 
   testWidgets('tapping a task result opens the task detail', (tester) async {
@@ -313,6 +345,8 @@ void main() {
 
     expect(openedTask, '42');
     expect(find.text('task detail'), findsOneWidget);
+    // The search UI closes itself on navigation.
+    expect(find.byType(SearchScreen), findsNothing);
   });
 
   testWidgets('tapping a contact result opens the contact', (tester) async {
@@ -329,6 +363,8 @@ void main() {
 
     expect(openedContact, 'c9');
     expect(find.text('contact detail'), findsOneWidget);
+    // The search UI closes itself on navigation.
+    expect(find.byType(SearchScreen), findsNothing);
   });
 
   testWidgets('show all opens the task list pre-filtered by the text query',
@@ -400,5 +436,90 @@ void main() {
     expect(find.text('Other task'), findsNothing);
     // Active filters from the list header stay visible (badge).
     expect(find.textContaining('Contact: Alice'), findsOneWidget);
+  });
+
+  testWidgets('magnifying-glass button opens the shared search UI and a '
+      'result navigates to the task detail', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp(
+      SearchTaskRepository([buildTask('42', 'Fix bugs')]),
+      SearchContactRepository([]),
+      initialLocation: '/',
+    ));
+    await tester.pumpAndSettle();
+
+    // Single shared search entry: the magnifying-glass button.
+    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('global-search-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SearchScreen), findsOneWidget);
+    expect(find.byKey(const Key('search-back-button')), findsOneWidget);
+
+    await search(tester, 'fix');
+    await tester.tap(find.text('Fix bugs'));
+    await tester.pumpAndSettle();
+
+    expect(openedTask, '42');
+    expect(find.text('task detail'), findsOneWidget);
+    // Search UI closes itself on navigation.
+    expect(find.byType(SearchScreen), findsNothing);
+  });
+
+  testWidgets('Ctrl+K opens the same shared search UI and a result '
+      'navigates to the contact detail', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp(
+      SearchTaskRepository([buildTask('1', 'Something')]),
+      SearchContactRepository([buildContact('c9', 'Ruth Miller')]),
+      initialLocation: '/',
+    ));
+    await tester.pumpAndSettle();
+
+    await sendCtrlK(tester);
+
+    expect(find.byType(SearchScreen), findsOneWidget);
+    expect(find.byKey(const Key('search-back-button')), findsOneWidget);
+
+    await search(tester, 'ruth');
+    await tester.tap(find.text('Ruth Miller'));
+    await tester.pumpAndSettle();
+
+    expect(openedContact, 'c9');
+    expect(find.text('contact detail'), findsOneWidget);
+    // Search UI closes itself on navigation.
+    expect(find.byType(SearchScreen), findsNothing);
+  });
+
+  testWidgets('back button returns to the previous screen', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp(
+      SearchTaskRepository([]),
+      SearchContactRepository([]),
+      initialLocation: '/',
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('global-search-button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SearchScreen), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('search-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SearchScreen), findsNothing);
+    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
   });
 }

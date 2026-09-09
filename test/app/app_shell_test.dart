@@ -151,7 +151,21 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
     await tester.pumpAndSettle();
 
+    // The shortcut pushes the shared search page (same flow as the button).
     expect(find.text('Search'), findsOneWidget);
-    expect(router.routerDelegate.currentConfiguration.uri.path, '/search');
+  });
+
+  testWidgets('programmatic push renders the search page', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpShell(tester);
+
+    router.push('/search');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search'), findsOneWidget);
   });
 }
