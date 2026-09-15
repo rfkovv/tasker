@@ -1,17 +1,38 @@
-# taskmaster
+# TaskMaster
 
-A new Flutter project.
+Flutter task manager with calendar board, contacts, subtasks, comments, and offline-first persistence.
 
-## Getting Started
+## Prerequisites
 
-This project is a starting point for a Flutter application.
+- Flutter SDK
+- Android SDK (API 36) with platform-tools
+- JDK 17
+- USB debugging enabled on the Android device
 
-A few resources to get you started if this is your first Flutter project:
+## Build & Run (Linux)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+# Debug build + install on connected device
+flutter build apk --debug
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+adb shell am start -n pl.taskmaster.taskmaster/.MainActivity
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Or hot-reload directly
+flutter run -d android
+```
+
+## Build (Release APK)
+
+```bash
+flutter build apk --release
+# Output: build/app/outputs/flutter-apk/app-release.apk
+```
+
+Release builds use the debug signing key by default. For production, configure a release keystore in `android/app/build.gradle.kts`.
+
+## Run Tests
+
+```bash
+flutter test
+flutter analyze
+```
