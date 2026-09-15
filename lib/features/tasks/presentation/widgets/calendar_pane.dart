@@ -45,37 +45,35 @@ class CalendarPane extends ConsumerWidget {
         ),
         const Divider(height: 1),
         Expanded(
-          child: byDay.isEmpty
-              ? _EmptyCalendarHint()
-              : switch (view.mode) {
-                  CalendarViewMode.month => _MonthGrid(
-                      month: view.anchor,
-                      byDay: byDay,
-                      zone: zone,
-                      today: today,
-                      onDropTask: (day, task) =>
-                          _dropOnDay(ref, day, task),
-                      onOpenTask: (id) => onOpenTask?.call(id),
-                    ),
-                  CalendarViewMode.week => _WeekGrid(
-                      day: view.anchor,
-                      byDay: byDay,
-                      zone: zone,
-                      today: today,
-                      onDropTask: (day, task) =>
-                          _dropOnDay(ref, day, task),
-                      onOpenTask: (id) => onOpenTask?.call(id),
-                    ),
-                  CalendarViewMode.quarter => _QuarterGrid(
-                      anchor: view.anchor,
-                      byDay: byDay,
-                      zone: zone,
-                      today: today,
-                      onDropTask: (day, task) =>
-                          _dropOnDay(ref, day, task),
-                      onOpenTask: (id) => onOpenTask?.call(id),
-                    ),
-                },
+          child: switch (view.mode) {
+            CalendarViewMode.month => _MonthGrid(
+                month: view.anchor,
+                byDay: byDay,
+                zone: zone,
+                today: today,
+                onDropTask: (day, task) =>
+                    _dropOnDay(ref, day, task),
+                onOpenTask: (id) => onOpenTask?.call(id),
+              ),
+            CalendarViewMode.week => _WeekGrid(
+                day: view.anchor,
+                byDay: byDay,
+                zone: zone,
+                today: today,
+                onDropTask: (day, task) =>
+                    _dropOnDay(ref, day, task),
+                onOpenTask: (id) => onOpenTask?.call(id),
+              ),
+            CalendarViewMode.quarter => _QuarterGrid(
+                anchor: view.anchor,
+                byDay: byDay,
+                zone: zone,
+                today: today,
+                onDropTask: (day, task) =>
+                    _dropOnDay(ref, day, task),
+                onOpenTask: (id) => onOpenTask?.call(id),
+              ),
+          },
         ),
       ],
     );
@@ -203,34 +201,6 @@ class _CalendarHeader extends StatelessWidget {
     final last = months.last;
     return '${_shortMonth(context, first.month)} – '
         '${_shortMonth(context, last.month)} ${last.year}';
-  }
-}
-
-class _EmptyCalendarHint extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.event_note,
-              size: 40,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              AppLocalizations.of(context).dragToScheduleHint,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

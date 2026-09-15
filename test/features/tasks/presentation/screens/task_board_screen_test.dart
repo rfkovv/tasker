@@ -402,4 +402,85 @@ void main() {
     expect(find.byType(DayCell), findsWidgets);
     expect(find.byType(CalendarTaskTile), findsOneWidget); // scheduled task still on the grid
   });
+
+  testWidgets('calendar pane renders with empty task list', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+  });
+
+  testWidgets('calendar pane renders when all tasks are undated', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'No date'),
+      buildTask(id: '2', title: 'Also no date'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(find.byType(CalendarTaskTile), findsNothing);
+  });
+
+  testWidgets('calendar pane renders when noDueDate filter hides all dated tasks',
+      (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Dated', dueDate: DateTime.utc(now.year, now.month, 10)),
+      buildTask(id: '2', title: 'Undated'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Apply noDueDate filter — list shows only undated, but calendar keeps grid.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TaskBoardScreen)),
+    );
+    container
+        .read(taskFilterStateProvider.notifier)
+        .setFilter(TaskFilter(noDueDate: true));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(find.byType(CalendarTaskTile), findsOneWidget); // dated task still on grid
+  });
+
+  testWidgets('calendar pane renders with normal mixed tasks', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Dated', dueDate: DateTime.utc(now.year, now.month, 15, 7)),
+      buildTask(id: '2', title: 'Undated'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(find.byType(CalendarTaskTile), findsOneWidget);
+    expect(find.text('Dated'), findsWidgets);
+  });
 }
