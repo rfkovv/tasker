@@ -208,6 +208,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get noComments => 'Brak komentarzy';
 
   @override
+  String showAllComments(Object count) {
+    return 'Pokaż wszystkie komentarze ($count)';
+  }
+
+  @override
+  String get showRecentOnly => 'Pokaż tylko ostatnie';
+
+  @override
   String get taskNotFound => 'Nie znaleziono zadania';
 
   @override

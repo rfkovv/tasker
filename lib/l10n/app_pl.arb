@@ -81,6 +81,8 @@
   "addComment": "Dodaj komentarz",
   "commentHint": "Napisz komentarz...",
   "noComments": "Brak komentarzy",
+  "showAllComments": "Pokaż wszystkie komentarze ({count})",
+  "showRecentOnly": "Pokaż tylko ostatnie",
   "taskNotFound": "Nie znaleziono zadania",
   "save": "Zapisz",
   "titleLabel": "Tytuł",

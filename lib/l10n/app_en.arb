@@ -81,6 +81,8 @@
   "addComment": "Add comment",
   "commentHint": "Write a comment...",
   "noComments": "No comments yet",
+  "showAllComments": "Show all comments ({count})",
+  "showRecentOnly": "Show recent only",
   "taskNotFound": "Task not found",
   "save": "Save",
   "titleLabel": "Title",

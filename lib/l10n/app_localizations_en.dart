@@ -207,6 +207,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noComments => 'No comments yet';
 
   @override
+  String showAllComments(Object count) {
+    return 'Show all comments ($count)';
+  }
+
+  @override
+  String get showRecentOnly => 'Show recent only';
+
+  @override
   String get taskNotFound => 'Task not found';
 
   @override

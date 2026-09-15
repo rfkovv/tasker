@@ -405,7 +405,7 @@ class _SubtasksSection extends StatelessWidget {
   }
 }
 
-class _CommentsSection extends StatelessWidget {
+class _CommentsSection extends StatefulWidget {
   const _CommentsSection({
     required this.taskId,
     required this.commentsAsync,
@@ -421,6 +421,13 @@ class _CommentsSection extends StatelessWidget {
   final Future<void> Function(String id) onDelete;
 
   @override
+  State<_CommentsSection> createState() => _CommentsSectionState();
+}
+
+class _CommentsSectionState extends State<_CommentsSection> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
@@ -430,18 +437,54 @@ class _CommentsSection extends StatelessWidget {
       children: [
         Text(l10n.comments, style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
-        commentsAsync.when(
-          data: (comments) => comments.isEmpty
-              ? Text(
-                  l10n.noComments,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.colorScheme.outline),
-                )
-              : Column(
-                  children: [
-                    for (final comment in comments) _CommentTile(comment: comment, onDelete: onDelete),
-                  ],
+        widget.commentsAsync.when(
+          data: (comments) {
+            if (comments.isEmpty) {
+              return Text(
+                l10n.noComments,
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: theme.colorScheme.outline),
+              );
+            }
+            final visible = _visibleComments(comments);
+            final commentTiles = [
+              for (final comment in visible)
+                _CommentTile(
+                  key: ValueKey(comment.id),
+                  comment: comment,
+                  onDelete: widget.onDelete,
                 ),
+            ];
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_expanded)
+                  SizedBox(
+                    height: 300,
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: commentTiles,
+                    ),
+                  )
+                else
+                  ...commentTiles,
+                if (comments.length > 3)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () =>
+                          setState(() => _expanded = !_expanded),
+                      child: Text(
+                        _expanded
+                            ? l10n.showRecentOnly
+                            : l10n.showAllComments(
+                                comments.length.toString()),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
           loading: () => const SizedBox(
             height: 40,
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -454,31 +497,36 @@ class _CommentsSection extends StatelessWidget {
           children: [
             Expanded(
               child: TextField(
-                controller: controller,
+                controller: widget.controller,
                 decoration: InputDecoration(
                   hintText: l10n.commentHint,
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),
                 textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onAdd(),
+                onSubmitted: (_) => widget.onAdd(),
               ),
             ),
             const SizedBox(width: 8),
             IconButton.filledTonal(
               icon: const Icon(Icons.send),
               tooltip: l10n.addComment,
-              onPressed: onAdd,
+              onPressed: widget.onAdd,
             ),
           ],
         ),
       ],
     );
   }
+
+  List<Comment> _visibleComments(List<Comment> all) {
+    if (_expanded || all.length <= 3) return all;
+    return all.sublist(all.length - 3);
+  }
 }
 
 class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, required this.onDelete});
+  const _CommentTile({super.key, required this.comment, required this.onDelete});
 
   final Comment comment;
   final Future<void> Function(String id) onDelete;

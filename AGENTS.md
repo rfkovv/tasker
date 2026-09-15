@@ -3,46 +3,36 @@
 PROJECT: TaskMaster (Flutter menedżer zadań)
 ARCHITECTURE: See ARCHITECTURE.md — follow it strictly, no deviations without approval.
 
-CURRENT PHASE: Stage 5.5 — Search (global) + contact expansion + filters
+CURRENT PHASE: Stage 7 — Android build
 
-STAGE 5.5 SCOPE (do NOT exceed):
-1. TIMEZONE SEARCH: dropdown strefy czasowej w settingsach z polem
-   wyszukiwania (fuzzy, case-insensitive; lista stref IANA)
-2. GLOBAL SEARCH (features/search):
-   - Wejście: przycisk lupy w topbarze (centralnie) → overlay/pole
-     z wynikami; skrót klawiaturowy Ctrl+K (desktop)
-   - Wyniki pogrupowane sekcjami: Zadania | Osoby istotne;
-     architektura pod przyszłe sekcje (lista sekcji = rejestrowana,
-     nie hardcodowana)
-   - Zadanie: klik → ekran detali; Kontakt: klik → detale kontaktu
-   - Sortowanie wyników: dopasowanie tytułu (prefiks > substring),
-     potem alfabetycznie; LIMIT wyników per sekcja (np. 10) +
-     "pokaż więcej" → pełna lista zadań z filtrem tekstowym
-   - Query przez repository (Case-insensitive LIKE), debounce input
-3. CONTACT EXPANSION:
-   - Kliknięcie kontaktu na liście → rozwinięcie z listą AKTYWNYCH
-     zadań zlinkowanych z tym kontaktem (mini-kafelki)
-   - Przycisk "Zobacz wszystkie zadania" → nawigacja do listy zadań
-     z załączonym filtrem po kontakcie (TaskFilter.contactId — nowy
-     wymiar filtra)
-   - Aktywne filtry z nagłówka listy zawsze widoczne (badge)
+STAGE 7 SCOPE (do NOT exceed):
+- Konfiguracja platformy android/ w projekcie Flutter (jeśli
+  brak: flutter create --platforms=android .)
+- Ścieżka bazy danych: getApplicationDocumentsDirectory()
+  (zgodnie z ARCHITECTURE.md — drift path strategy per platform)
+- Release build: flutter build apk --release (debug build do dev na
+  telefonie: flutter run)
+- Signature config: debug keystore wystarczy na start (release
+  signing — osobny krok przy publikacji; SKONFIGUROWAĆ ale bez
+  realnego keystore produkcyjnego)
+- Ikona aplikacji + splash (flutter_launcher_icons — podstawowe)
+- Test na urządzeniu/emulatorze: CRUD, persystencja, drag & drop
+  kalendarza (dotyk = long-press drag), klawiatura ekranowa
+  nie zasłania Save (resizeToAvoidBottomInset)
 
-OUT OF SCOPE: buildy Windows/Android, sync, lokalizacje pod ekspedycje
+OUT OF SCOPE: Play Store publishing, iOS, notyfikacje, sync
 
 IMPLEMENTATION ORDER:
-1. TaskFilter: dodanie contactId (query layer)
-2. Search feature: search provider (fold results: tasks + contacts),
-   overlay UI, keyboard shortcut
-3. Contact expansion UI na liście kontaktów (aktywne zadania + link)
-4. i18n PL/EN wszystkich nowych stringów
-5. Tests: search unit (grupowanie, ranking), widget (rozwinięcie
-   kontaktu, przycisk → lista z filtrem), analyze per warstwa
+1. flutter create --platforms=android (uważać: NIE nadpisać lib/)
+2. Drift database path dla Android (getApplicationDocumentsDirectory)
+3. APK release build + instalacja (adb install)
+4. Test dotykowy DnD + klawiatura
+5. README: sekcja Android build
 
 COMPLETION CRITERIA:
-- Ctrl+K/overlay znajduje zadania i kontakty wspólnie;
-  kontakt rozwija się z aktywnymi zadaniami; "zobacz wszystkie
-  zadania" otwiera listę prefiltrowaną po kontakcie; strefa ma
-  wyszukiwarkę; testy zielone
+- flutter run -d <device> działa z Linuksa (USB debug lub emulator)
+- Release APK instaluje się i działa; zadania persystują;
+  drag & drop działa na dotyk
 
 RULES:
 1. Feature-first structure; mirror conventions of features/tasks/ exactly

@@ -482,6 +482,18 @@ abstract class AppLocalizations {
   /// **'No comments yet'**
   String get noComments;
 
+  /// No description provided for @showAllComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all comments ({count})'**
+  String showAllComments(Object count);
+
+  /// No description provided for @showRecentOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Show recent only'**
+  String get showRecentOnly;
+
   /// No description provided for @taskNotFound.
   ///
   /// In en, this message translates to:

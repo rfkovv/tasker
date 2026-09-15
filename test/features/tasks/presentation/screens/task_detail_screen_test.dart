@@ -484,4 +484,49 @@ void main() {
     expect(find.text('Relevant Persons'), findsOneWidget);
     expect(find.text('No contacts linked'), findsOneWidget);
   });
+
+  testWidgets('comments section collapses to 3 newest and expands to all',
+      (tester) async {
+    commentRepo = FakeCommentRepository([
+      for (var i = 1; i <= 6; i++)
+        Comment(
+          id: 'c$i',
+          taskId: taskId,
+          body: 'Comment $i',
+          createdAt: DateTime(2026, 9, 9, 10, i),
+        ),
+    ]);
+
+    await tester.pumpWidget(buildApp(taskId));
+    await tester.pumpAndSettle();
+
+    // Collapsed: 3 newest (4, 5, 6) shown; oldest (1, 2, 3) hidden.
+    expect(find.text('Comment 4'), findsOneWidget);
+    expect(find.text('Comment 5'), findsOneWidget);
+    expect(find.text('Comment 6'), findsOneWidget);
+    expect(find.text('Comment 1'), findsNothing);
+    expect(find.text('Comment 2'), findsNothing);
+    expect(find.text('Comment 3'), findsNothing);
+    // Expand control reflects total count.
+    expect(find.textContaining('Show all comments (6)'), findsOneWidget);
+
+    // Expand → all 6 visible.
+    await tester.tap(find.textContaining('Show all comments'));
+    await tester.pumpAndSettle();
+
+    for (var i = 1; i <= 6; i++) {
+      expect(find.text('Comment $i'), findsOneWidget);
+    }
+    // Collapse control shown.
+    expect(find.text('Show recent only'), findsOneWidget);
+
+    // Collapse again → back to3 newest.
+    await tester.tap(find.text('Show recent only'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Comment 4'), findsOneWidget);
+    expect(find.text('Comment 5'), findsOneWidget);
+    expect(find.text('Comment 6'), findsOneWidget);
+    expect(find.text('Comment 1'), findsNothing);
+  });
 }
