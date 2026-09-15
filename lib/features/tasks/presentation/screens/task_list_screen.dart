@@ -86,96 +86,130 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     final subtaskProgressByTask =
         subtaskProgressAsync.value ?? const <String, SubtaskProgress>{};
 
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                AppLocalizations.of(context).tasks,
-                overflow: TextOverflow.ellipsis,
+      appBar: isLandscape
+          ? null
+          : AppBar(
+              centerTitle: true,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      AppLocalizations.of(context).tasks,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const GlobalSearchButton(),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            const GlobalSearchButton(),
-          ],
-        ),
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          const _FilterBar(),
-          const Divider(height: 1),
-          Expanded(
-            child: tasksAsync.when(
-              data: (tasks) {
-                _scheduleScrollabilityCheck();
-                return Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: tasks.isEmpty ? 2 : tasks.length + 1,
-                        itemBuilder: (context, index) {
-                          if (tasks.isEmpty) {
-                            if (index == 0) {
-                              return const Padding(
-                                padding: EdgeInsets.all(32),
-                                child: _EmptyState(),
+          Column(
+            children: [
+              const _FilterBar(),
+              const Divider(height: 1),
+              Expanded(
+                child: tasksAsync.when(
+                  data: (tasks) {
+                    _scheduleScrollabilityCheck();
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: tasks.isEmpty ? 2 : tasks.length + 1,
+                            itemBuilder: (context, index) {
+                              if (tasks.isEmpty) {
+                                if (index == 0) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(32),
+                                    child: _EmptyState(),
+                                  );
+                                }
+                                return _FooterTile(onAddTask: _handleAddTask);
+                              }
+                              if (index == tasks.length) {
+                                return _FooterTile(onAddTask: _handleAddTask);
+                              }
+                              final task = tasks[index];
+                              final links =
+                                  contactsByTask[task.id] ??
+                                  const <contacts_feature.Contact>[];
+                              final tile = TaskTile(
+                                task: task,
+                                contacts: links,
+                                subtaskProgress:
+                                    subtaskProgressByTask[task.id],
+                                onTap: () =>
+                                    widget.onOpenTask?.call(task.id),
+                                onToggleDone: (done) async {
+                                  final repo =
+                                      ref.read(taskRepositoryProvider);
+                                  await repo.updateStatus(
+                                    task.id,
+                                    done
+                                        ? TaskStatus.done
+                                        : TaskStatus.todo,
+                                  );
+                                },
                               );
-                            }
-                            return _FooterTile(onAddTask: _handleAddTask);
-                          }
-                          if (index == tasks.length) {
-                            return _FooterTile(onAddTask: _handleAddTask);
-                          }
-                          final task = tasks[index];
-                          final links =
-                              contactsByTask[task.id] ??
-                              const <contacts_feature.Contact>[];
-                          final tile = TaskTile(
-                            task: task,
-                            contacts: links,
-                            subtaskProgress: subtaskProgressByTask[task.id],
-                            onTap: () => widget.onOpenTask?.call(task.id),
-                            onToggleDone: (done) async {
-                              final repo = ref.read(taskRepositoryProvider);
-                              await repo.updateStatus(
-                                task.id,
-                                done ? TaskStatus.done : TaskStatus.todo,
+                              return DraggableTask(
+                                task: task,
+                                child: tile,
                               );
                             },
-                          );
-                          return DraggableTask(task: task, child: tile);
-                        },
-                      ),
-                    ),
-                    if (tasks.isNotEmpty)
-                      Positioned(
-                        right: 16,
-                        bottom: 16,
-                        child: AnimatedOpacity(
-                          opacity: _showFab ? 1 : 0,
-                          duration: const Duration(milliseconds: 150),
-                          child: FloatingActionButton.small(
-                            onPressed: _showFab ? _handleAddTask : null,
-                            child: const Icon(Icons.add_task),
                           ),
                         ),
-                      ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Text(
-                  AppLocalizations.of(context).errorWithValue(e.toString()),
+                        if (tasks.isNotEmpty)
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: AnimatedOpacity(
+                              opacity: _showFab ? 1 : 0,
+                              duration: const Duration(milliseconds: 150),
+                              child: FloatingActionButton.small(
+                                onPressed:
+                                    _showFab ? _handleAddTask : null,
+                                child: const Icon(Icons.add_task),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(
+                    child: Text(
+                      AppLocalizations.of(context)
+                          .errorWithValue(e.toString()),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
+          if (isLandscape)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.8),
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: const GlobalSearchButton(),
+              ),
+            ),
         ],
       ),
     );

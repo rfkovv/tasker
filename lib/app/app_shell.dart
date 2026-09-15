@@ -182,9 +182,16 @@ class _MobileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
+        height: isLandscape ? 56 : null,
+        labelBehavior: isLandscape
+            ? NavigationDestinationLabelBehavior.alwaysHide
+            : NavigationDestinationLabelBehavior.alwaysShow,
         selectedIndex: selectedIndex,
         destinations: [
           NavigationDestination(

@@ -510,4 +510,39 @@ void main() {
     expect(find.text('A'), findsOneWidget);
     expect(find.text('B'), findsOneWidget);
   });
+
+  testWidgets('landscape hides AppBar and shows floating search button',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildTask(id: 'a', title: 'Task A'),
+    ]));
+    await tester.pumpAndSettle();
+
+    // AppBar absent in landscape.
+    expect(find.byType(AppBar), findsNothing);
+    // Floating search button present.
+    expect(find.byIcon(Icons.search), findsOneWidget);
+  });
+
+  testWidgets('portrait keeps AppBar with title and search',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildTask(id: 'a', title: 'Task A'),
+    ]));
+    await tester.pumpAndSettle();
+
+    // AppBar present in portrait.
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
+  });
 }

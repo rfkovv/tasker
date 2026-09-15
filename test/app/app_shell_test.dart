@@ -189,4 +189,27 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
   });
+
+  testWidgets('mobile landscape NavigationBar hides labels (icons only)',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp.router(
+        routerConfig: router,
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navBar.labelBehavior,
+        NavigationDestinationLabelBehavior.alwaysHide);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
 }

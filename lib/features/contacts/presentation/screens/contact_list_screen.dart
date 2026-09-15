@@ -46,33 +46,39 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
   @override
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(contactListProvider(null));
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                AppLocalizations.of(context).contacts,
-                overflow: TextOverflow.ellipsis,
+      appBar: isLandscape
+          ? null
+          : AppBar(
+              centerTitle: true,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      AppLocalizations.of(context).contacts,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const GlobalSearchButton(),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            const GlobalSearchButton(),
-          ],
-        ),
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          _ContactFilterBar(
-            contacts: contactsAsync.value ?? const <Contact>[],
-            initial: _filterInitial,
-            onChanged: (initial) =>
-                setState(() => _filterInitial = initial),
-          ),
-          const Divider(height: 1),
+          Column(
+            children: [
+              _ContactFilterBar(
+                contacts: contactsAsync.value ?? const <Contact>[],
+                initial: _filterInitial,
+                onChanged: (initial) =>
+                    setState(() => _filterInitial = initial),
+              ),
+              const Divider(height: 1),
           Expanded(
             child: contactsAsync.when(
               data: (all) {
@@ -163,7 +169,23 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
           ),
         ],
       ),
-    );
+      if (isLandscape)
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Material(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.8),
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: const GlobalSearchButton(),
+          ),
+        ),
+    ],
+  ),
+);
   }
 }
 
