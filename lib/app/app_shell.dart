@@ -20,7 +20,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 900;
+        final isDesktop = constraints.maxWidth >= 1000;
         if (isDesktop) {
           return _DesktopShell(
             selectedIndex: _selectedIndex(context),
