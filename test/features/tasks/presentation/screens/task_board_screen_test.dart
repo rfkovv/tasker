@@ -635,4 +635,27 @@ void main() {
     expect(find.text('Tap a day to schedule'), findsNothing);
     expect(repo.updated, isEmpty);
   });
+
+  testWidgets('calendar task tiles meet 48px minimum touch target',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Touch me',
+          dueDate: DateTime.utc(now.year, now.month, 15, 7)),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    final renderBox =
+        tester.renderObject<RenderBox>(find.byType(CalendarTaskTile));
+    expect(renderBox.size.height, greaterThanOrEqualTo(48.0));
+  });
 }

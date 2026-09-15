@@ -40,35 +40,38 @@ class CalendarTaskTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(6),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: Row(
-            children: [
-              if (overdue) ...[
-                Icon(Icons.warning_amber_rounded, size: 12, color: scheme.error),
-                const SizedBox(width: 3),
-              ],
-              Text(
-                '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: foreground,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  task.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              children: [
+                if (overdue) ...[
+                  Icon(Icons.warning_amber_rounded, size: 12, color: scheme.error),
+                  const SizedBox(width: 3),
+                ],
+                Text(
+                  '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: foreground,
-                    decoration:
-                        task.isDone ? TextDecoration.lineThrough : null,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: foreground,
+                      decoration:
+                          task.isDone ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
