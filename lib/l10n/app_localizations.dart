@@ -752,6 +752,18 @@ abstract class AppLocalizations {
   /// **'Calendar'**
   String get tabCalendar;
 
+  /// No description provided for @tapToScheduleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a day to schedule'**
+  String get tapToScheduleHint;
+
+  /// No description provided for @cancelSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelSchedule;
+
   /// No description provided for @dayMon.
   ///
   /// In en, this message translates to:

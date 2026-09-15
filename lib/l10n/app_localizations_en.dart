@@ -344,6 +344,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabCalendar => 'Calendar';
 
   @override
+  String get tapToScheduleHint => 'Tap a day to schedule';
+
+  @override
+  String get cancelSchedule => 'Cancel';
+
+  @override
   String get dayMon => 'Mon';
 
   @override

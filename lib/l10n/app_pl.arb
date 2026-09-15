@@ -127,6 +127,8 @@
   "calendarQuarter": "Kwartał",
   "tabList": "Lista",
   "tabCalendar": "Kalendarz",
+  "tapToScheduleHint": "Stuknij dzień, aby zaplanować",
+  "cancelSchedule": "Anuluj",
   "dayMon": "pon",
   "dayTue": "wt",
   "dayWed": "śr",

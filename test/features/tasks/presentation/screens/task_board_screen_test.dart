@@ -558,4 +558,81 @@ void main() {
     expect(find.byType(CalendarPane), findsNothing);
     expect(find.text('My Task'), findsOneWidget);
   });
+
+  testWidgets('tap-to-schedule: tap task then tap day sets due date',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final due = tz.TZDateTime(warsaw, now.year, now.month, 5, 9, 0).toUtc();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Move me', dueDate: due),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Switch to Calendar view.
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CalendarPane), findsOneWidget);
+
+    // No scheduling hint yet.
+    expect(find.text('Tap a day to schedule'), findsNothing);
+
+    // Tap the task tile to enter scheduling mode.
+    await tester.tap(find.text('Move me'));
+    await tester.pumpAndSettle();
+
+    // Scheduling hint bar visible.
+    expect(find.text('Tap a day to schedule'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+
+    // Tap day cell 20th to reschedule.
+    final targetDay = tz.TZDateTime(warsaw, now.year, now.month, 20);
+    await tester.tap(find.byKey(ValueKey(cellKey(targetDay))));
+    await tester.pumpAndSettle();
+
+    // Task got new due date, hint dismissed.
+    expect(repo.updated, hasLength(1));
+    final updated = repo.updated.single;
+    expect(updated.id, '1');
+    expect(updated.dueDate, isNotNull);
+    final local = tz.TZDateTime.from(updated.dueDate!, warsaw);
+    expect(local.day, 20);
+    expect(local.hour, 9); // kept existing time
+    expect(find.text('Tap a day to schedule'), findsNothing);
+  });
+
+  testWidgets('tap-to-schedule: cancel dismisses scheduling mode',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final due = tz.TZDateTime(warsaw, now.year, now.month, 8, 7, 0).toUtc();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Scheduled task', dueDate: due),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    // Enter scheduling mode.
+    await tester.tap(find.text('Scheduled task'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tap a day to schedule'), findsOneWidget);
+
+    // Cancel.
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tap a day to schedule'), findsNothing);
+    expect(repo.updated, isEmpty);
+  });
 }

@@ -17,9 +17,21 @@ import 'day_cell.dart';
 /// Right-hand pane of the tasks screen: a month/week/quarter calendar grid
 /// with drag & drop scheduling. Shares the task list's providers and state.
 class CalendarPane extends ConsumerWidget {
-  const CalendarPane({super.key, this.onOpenTask});
+  const CalendarPane({
+    super.key,
+    this.onOpenTask,
+    this.onTaskTap,
+    this.onTapDay,
+  });
 
   final ValueChanged<String>? onOpenTask;
+
+  /// Called when a task tile is tapped. Overrides [onOpenTask] when non-null.
+  final ValueChanged<Task>? onTaskTap;
+
+  /// Called when a day cell is tapped (for tap-to-schedule). When null,
+  /// day cells are not tappable (drag only).
+  final ValueChanged<DateTime>? onTapDay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,6 +66,8 @@ class CalendarPane extends ConsumerWidget {
                 onDropTask: (day, task) =>
                     _dropOnDay(ref, day, task),
                 onOpenTask: (id) => onOpenTask?.call(id),
+                onTaskTap: onTaskTap,
+                onTapDay: onTapDay,
               ),
             CalendarViewMode.week => _WeekGrid(
                 day: view.anchor,
@@ -63,6 +77,8 @@ class CalendarPane extends ConsumerWidget {
                 onDropTask: (day, task) =>
                     _dropOnDay(ref, day, task),
                 onOpenTask: (id) => onOpenTask?.call(id),
+                onTaskTap: onTaskTap,
+                onTapDay: onTapDay,
               ),
             CalendarViewMode.quarter => _QuarterGrid(
                 anchor: view.anchor,
@@ -72,6 +88,8 @@ class CalendarPane extends ConsumerWidget {
                 onDropTask: (day, task) =>
                     _dropOnDay(ref, day, task),
                 onOpenTask: (id) => onOpenTask?.call(id),
+                onTaskTap: onTaskTap,
+                onTapDay: onTapDay,
               ),
           },
         ),
@@ -247,6 +265,8 @@ class _MonthGrid extends StatelessWidget {
     required this.today,
     required this.onDropTask,
     required this.onOpenTask,
+    this.onTaskTap,
+    this.onTapDay,
   });
 
   final DateTime month;
@@ -255,6 +275,8 @@ class _MonthGrid extends StatelessWidget {
   final DateTime today;
   final void Function(DateTime day, Task task) onDropTask;
   final ValueChanged<String>? onOpenTask;
+  final ValueChanged<Task>? onTaskTap;
+  final ValueChanged<DateTime>? onTapDay;
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +316,14 @@ class _MonthGrid extends StatelessWidget {
       isCurrentMonth: isCurrentMonth,
       isToday: isCurrentMonth && day == today,
       onDropTask: (task) => onDropTask(day, task),
-      onTapTask: onOpenTask,
+      onTapTask: onTaskTap != null
+          ? (id) {
+              final tasks = byDay[day] ?? const <Task>[];
+              final task = tasks.firstWhere((t) => t.id == id);
+              onTaskTap!(task);
+            }
+          : onOpenTask,
+      onTapDay: onTapDay != null ? () => onTapDay!(day) : null,
     );
   }
 }
@@ -307,6 +336,8 @@ class _WeekGrid extends StatelessWidget {
     required this.today,
     required this.onDropTask,
     required this.onOpenTask,
+    this.onTaskTap,
+    this.onTapDay,
   });
 
   final DateTime day;
@@ -315,6 +346,8 @@ class _WeekGrid extends StatelessWidget {
   final DateTime today;
   final void Function(DateTime day, Task task) onDropTask;
   final ValueChanged<String>? onOpenTask;
+  final ValueChanged<Task>? onTaskTap;
+  final ValueChanged<DateTime>? onTapDay;
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +372,16 @@ class _WeekGrid extends StatelessWidget {
                       isCurrentMonth: true,
                       isToday: day == today,
                       onDropTask: (task) => onDropTask(day, task),
-                      onTapTask: onOpenTask,
+                      onTapTask: onTaskTap != null
+                          ? (id) {
+                              final tasks = byDay[day] ?? const <Task>[];
+                              final task =
+                                  tasks.firstWhere((t) => t.id == id);
+                              onTaskTap!(task);
+                            }
+                          : onOpenTask,
+                      onTapDay:
+                          onTapDay != null ? () => onTapDay!(day) : null,
                     ),
                   ),
               ],
@@ -359,6 +401,8 @@ class _QuarterGrid extends StatelessWidget {
     required this.today,
     required this.onDropTask,
     required this.onOpenTask,
+    this.onTaskTap,
+    this.onTapDay,
   });
 
   final DateTime anchor;
@@ -367,6 +411,8 @@ class _QuarterGrid extends StatelessWidget {
   final DateTime today;
   final void Function(DateTime day, Task task) onDropTask;
   final ValueChanged<String>? onOpenTask;
+  final ValueChanged<Task>? onTaskTap;
+  final ValueChanged<DateTime>? onTapDay;
 
   @override
   Widget build(BuildContext context) {
@@ -415,7 +461,15 @@ class _QuarterGrid extends StatelessWidget {
                     isCurrentMonth: day.month == month.month,
                     isToday: day.month == month.month && day == today,
                     onDropTask: (task) => onDropTask(day, task),
-                    onTapTask: onOpenTask,
+                    onTapTask: onTaskTap != null
+                        ? (id) {
+                            final tasks = byDay[day] ?? const <Task>[];
+                            final task = tasks.firstWhere((t) => t.id == id);
+                            onTaskTap!(task);
+                          }
+                        : onOpenTask,
+                    onTapDay:
+                        onTapDay != null ? () => onTapDay!(day) : null,
                   ),
                 ),
             ],

@@ -345,6 +345,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get tabCalendar => 'Kalendarz';
 
   @override
+  String get tapToScheduleHint => 'Stuknij dzień, aby zaplanować';
+
+  @override
+  String get cancelSchedule => 'Anuluj';
+
+  @override
   String get dayMon => 'pon';
 
   @override

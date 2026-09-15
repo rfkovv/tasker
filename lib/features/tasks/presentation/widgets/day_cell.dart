@@ -16,6 +16,7 @@ class DayCell extends StatelessWidget {
     required this.isToday,
     required this.onDropTask,
     this.onTapTask,
+    this.onTapDay,
   });
 
   /// Date-only `DateTime` identifying this cell in the display zone.
@@ -29,6 +30,9 @@ class DayCell extends StatelessWidget {
   /// Called when a task is dropped on this cell.
   final ValueChanged<Task> onDropTask;
   final ValueChanged<String>? onTapTask;
+
+  /// Called when the empty area of the day cell is tapped (tap-to-schedule).
+  final VoidCallback? onTapDay;
 
   @override
   Widget build(BuildContext context) {
@@ -48,54 +52,58 @@ class DayCell extends StatelessWidget {
       onAcceptWithDetails: (details) => onDropTask(details.data),
       builder: (context, candidates, _) {
         final isCandidate = candidates.isNotEmpty;
-        return Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: isCandidate
-                  ? scheme.primary
-                  : scheme.outlineVariant.withValues(alpha: 0.5),
-              width: isCandidate ? 2 : 1,
-            ),
-            color: highlighted
-                ? scheme.primaryContainer.withValues(alpha: 0.4)
-                : null,
-          ),
-          padding: const EdgeInsets.all(2),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: CircleAvatar(
-                  radius: 10,
-                  backgroundColor:
-                      highlighted ? scheme.primary : Colors.transparent,
-                  child: Text('${day.day}', style: dayNumberStyle),
-                ),
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: onTapDay,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: isCandidate
+                    ? scheme.primary
+                    : scheme.outlineVariant.withValues(alpha: 0.5),
+                width: isCandidate ? 2 : 1,
               ),
-              const SizedBox(height: 2),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    for (final task in tasks)
-                      DraggableTask(
-                        task: task,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: CalendarTaskTile(
-                            task: task,
-                            zone: zone,
-                            onTap: onTapTask == null
-                                ? null
-                                : () => onTapTask!(task.id),
+              color: highlighted
+                  ? scheme.primaryContainer.withValues(alpha: 0.4)
+                  : null,
+            ),
+            padding: const EdgeInsets.all(2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: CircleAvatar(
+                    radius: 10,
+                    backgroundColor:
+                        highlighted ? scheme.primary : Colors.transparent,
+                    child: Text('${day.day}', style: dayNumberStyle),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      for (final task in tasks)
+                        DraggableTask(
+                          task: task,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: CalendarTaskTile(
+                              task: task,
+                              zone: zone,
+                              onTap: onTapTask == null
+                                  ? null
+                                  : () => onTapTask!(task.id),
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

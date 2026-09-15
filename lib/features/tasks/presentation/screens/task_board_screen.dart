@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../settings/settings.dart' as settings_feature;
 import '../../data/task_repository_provider.dart';
+import '../../domain/scheduling.dart';
 import '../../domain/task.dart';
 import '../../domain/task_filter.dart';
 import '../providers/task_list_provider.dart';
@@ -118,7 +120,7 @@ class _WideLayout extends StatelessWidget {
 }
 
 /// Narrow layout: segmented control [List | Calendar] with one view at a time.
-class _NarrowLayout extends StatelessWidget {
+class _NarrowLayout extends StatefulWidget {
   const _NarrowLayout({
     required this.onOpenTask,
     required this.showCalendar,
@@ -128,6 +130,44 @@ class _NarrowLayout extends StatelessWidget {
   final ValueChanged<String>? onOpenTask;
   final bool showCalendar;
   final ValueChanged<bool> onToggleView;
+
+  @override
+  State<_NarrowLayout> createState() => _NarrowLayoutState();
+}
+
+class _NarrowLayoutState extends State<_NarrowLayout> {
+  Task? _schedulingTask;
+
+  void _onTaskTap(Task task) {
+    setState(() {
+      if (_schedulingTask?.id == task.id) {
+        _schedulingTask = null; // toggle off
+      } else {
+        _schedulingTask = task;
+      }
+    });
+  }
+
+  void _onTapDay(DateTime day) {
+    final task = _schedulingTask;
+    if (task == null) return;
+    final container = ProviderScope.containerOf(context);
+    final zone = container.read(settings_feature.selectedTimeZoneProvider);
+    final dueTime = container.read(settings_feature.defaultDueTimeProvider);
+    final newDue = movedDueDate(
+      task: task,
+      day: day,
+      zone: zone,
+      defaultDueTime: DueTime(hour: dueTime.hour, minute: dueTime.minute),
+    );
+    if (task.dueDate == newDue) return;
+    unawaited(
+      container.read(taskRepositoryProvider).update(
+            task.copyWith(dueDate: newDue, updatedAt: DateTime.now()),
+          ),
+    );
+    setState(() => _schedulingTask = null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,15 +189,46 @@ class _NarrowLayout extends StatelessWidget {
                   label: Text(l10n.tabCalendar),
                 ),
               ],
-              selected: {showCalendar},
+              selected: {widget.showCalendar},
               onSelectionChanged: (selection) =>
-                  onToggleView(selection.first),
+                  widget.onToggleView(selection.first),
             ),
           ),
+          if (_schedulingTask != null)
+            Material(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.event,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.tapToScheduleHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _schedulingTask = null),
+                      child: Text(l10n.cancelSchedule),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           const Divider(height: 1),
           Expanded(
-            child: showCalendar
-                ? CalendarPane(onOpenTask: onOpenTask)
+            child: widget.showCalendar
+                ? CalendarPane(
+                    onOpenTask: widget.onOpenTask,
+                    onTaskTap: _onTaskTap,
+                    onTapDay: _schedulingTask != null ? _onTapDay : null,
+                  )
                 : DragTarget<Task>(
                     onWillAcceptWithDetails: (details) =>
                         details.data.dueDate != null,
@@ -183,7 +254,7 @@ class _NarrowLayout extends StatelessWidget {
                                 .secondaryContainer
                                 .withValues(alpha: 0.25)
                             : null,
-                        child: TaskListScreen(onOpenTask: onOpenTask),
+                        child: TaskListScreen(onOpenTask: widget.onOpenTask),
                       );
                     },
                   ),
