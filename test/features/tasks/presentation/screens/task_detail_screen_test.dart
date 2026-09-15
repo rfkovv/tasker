@@ -520,7 +520,9 @@ void main() {
     // Collapse control shown.
     expect(find.text('Show recent only'), findsOneWidget);
 
-    // Collapse again → back to3 newest.
+    // Collapse again → back to 3 newest.
+    await tester.ensureVisible(find.text('Show recent only'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Show recent only'));
     await tester.pumpAndSettle();
 
