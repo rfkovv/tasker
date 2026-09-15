@@ -125,6 +125,8 @@
   "calendarMonth": "Month",
   "calendarWeek": "Week",
   "calendarQuarter": "Quarter",
+  "tabList": "List",
+  "tabCalendar": "Calendar",
   "dayMon": "Mon",
   "dayTue": "Tue",
   "dayWed": "Wed",

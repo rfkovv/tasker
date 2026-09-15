@@ -483,4 +483,79 @@ void main() {
     expect(find.byType(CalendarTaskTile), findsOneWidget);
     expect(find.text('Dated'), findsWidgets);
   });
+
+  // --- Narrow layout tests (segmented control) ---
+
+  testWidgets('narrow layout shows segmented control with List and Calendar',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+    expect(find.text('List'), findsOneWidget);
+    expect(find.text('Calendar'), findsOneWidget);
+    // Defaults to list view.
+    expect(find.text('My Task'), findsOneWidget);
+  });
+
+  testWidgets('narrow layout: tapping Calendar shows calendar pane',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.now();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Scheduled',
+          dueDate: DateTime.utc(now.year, now.month, 15, 7)),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Initially list view — calendar not visible.
+    expect(find.byType(CalendarPane), findsNothing);
+    expect(find.text('Scheduled'), findsOneWidget);
+
+    // Tap Calendar tab.
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    // Calendar pane visible, list hidden.
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byType(CalendarTaskTile), findsOneWidget);
+  });
+
+  testWidgets('narrow layout: tapping List shows list view',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Switch to calendar first.
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CalendarPane), findsOneWidget);
+
+    // Switch back to list.
+    await tester.tap(find.text('List'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CalendarPane), findsNothing);
+    expect(find.text('My Task'), findsOneWidget);
+  });
 }

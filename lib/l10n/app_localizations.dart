@@ -740,6 +740,18 @@ abstract class AppLocalizations {
   /// **'Quarter'**
   String get calendarQuarter;
 
+  /// No description provided for @tabList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get tabList;
+
+  /// No description provided for @tabCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get tabCalendar;
+
   /// No description provided for @dayMon.
   ///
   /// In en, this message translates to:

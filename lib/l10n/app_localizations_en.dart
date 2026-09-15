@@ -338,6 +338,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarQuarter => 'Quarter';
 
   @override
+  String get tabList => 'List';
+
+  @override
+  String get tabCalendar => 'Calendar';
+
+  @override
   String get dayMon => 'Mon';
 
   @override
