@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../database.dart';
+import '../synced_tables.dart';
 import '../tables/tags_table.dart';
 import '../tables/task_tags_table.dart';
 import '../tables/tasks_table.dart';
@@ -47,19 +48,28 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   }
 
   Future<void> upsertTask(TasksCompanion entry) async {
-    await into(tasks).insertOnConflictUpdate(entry);
+    await transaction(() async {
+      await into(tasks).insertOnConflictUpdate(entry);
+      await attachedDatabase.enqueueSyncEvent('tasks', entry.id.value);
+    });
   }
 
   Future<void> softDeleteTask(String id, int now) async {
-    await (update(tasks)..where((t) => t.id.equals(id))).write(
-      TasksCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-    );
+    await transaction(() async {
+      await (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await attachedDatabase.enqueueSyncEvent('tasks', id);
+    });
   }
 
   Future<void> updateStatus(String id, String status, int now) async {
-    await (update(tasks)..where((t) => t.id.equals(id))).write(
-      TasksCompanion(status: Value(status), updatedAt: Value(now)),
-    );
+    await transaction(() async {
+      await (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(status: Value(status), updatedAt: Value(now)),
+      );
+      await attachedDatabase.enqueueSyncEvent('tasks', id);
+    });
   }
 
   Future<List<Tag>> tagsForTask(String taskId) async {
@@ -84,12 +94,27 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
     return grouped;
   }
 
+  /// Replaces all task_tags links for [taskId].
+  ///
+  /// One outbox event per row-level change: every DELETE of an old link and
+  /// every INSERT of a new link enqueues its own event, within the same
+  /// transaction. Newly-created tags enqueue their own `tags` events via
+  /// [ensureTag].
   Future<void> replaceTagsForTask(
     String taskId,
     List<String> tagNames,
   ) async {
     await transaction(() async {
+      final previous = await (select(taskTags)
+            ..where((tt) => tt.taskId.equals(taskId)))
+          .get();
       await (delete(taskTags)..where((tt) => tt.taskId.equals(taskId))).go();
+      for (final link in previous) {
+        await attachedDatabase.enqueueSyncEvent(
+          'task_tags',
+          joinRowId(link.taskId, link.tagId),
+        );
+      }
       for (final name in tagNames) {
         final tag = await ensureTag(name);
         await into(taskTags).insert(
@@ -98,6 +123,10 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
             tagId: tag.id,
           ),
           onConflict: DoNothing(),
+        );
+        await attachedDatabase.enqueueSyncEvent(
+          'task_tags',
+          joinRowId(taskId, tag.id),
         );
       }
     });
@@ -111,7 +140,10 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
       id: const Uuid().v4(),
       name: name,
     );
-    await into(tags).insert(tag);
+    await transaction(() async {
+      await into(tags).insert(tag);
+      await attachedDatabase.enqueueSyncEvent('tags', tag.id.value);
+    });
     return (select(tags)..where((t) => t.name.equals(name))).getSingle();
   }
 }

@@ -25,17 +25,28 @@ class SubtasksDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<void> upsertSubtask(SubtasksCompanion entry) async {
-    await into(subtasks).insertOnConflictUpdate(entry);
+    await transaction(() async {
+      await into(subtasks).insertOnConflictUpdate(entry);
+      await attachedDatabase.enqueueSyncEvent('subtasks', entry.id.value);
+    });
   }
 
   Future<void> setSubtaskCompleted(String id, bool completed, int now) async {
-    await (update(subtasks)..where((s) => s.id.equals(id))).write(
-      SubtasksCompanion(isCompleted: Value(completed), updatedAt: Value(now)),
-    );
+    await transaction(() async {
+      await (update(subtasks)..where((s) => s.id.equals(id))).write(
+        SubtasksCompanion(isCompleted: Value(completed), updatedAt: Value(now)),
+      );
+      await attachedDatabase.enqueueSyncEvent('subtasks', id);
+    });
   }
 
+  /// Hard-deletes a subtask. Enqueues a purge event (row is gone at push
+  /// time — normal outcome, skip and log in the push layer).
   Future<void> deleteSubtask(String id) async {
-    await (delete(subtasks)..where((s) => s.id.equals(id))).go();
+    await transaction(() async {
+      await (delete(subtasks)..where((s) => s.id.equals(id))).go();
+      await attachedDatabase.enqueueSyncEvent('subtasks', id);
+    });
   }
 
   Future<int> nextPosition(String taskId) async {
@@ -55,16 +66,19 @@ class SubtasksDao extends DatabaseAccessor<AppDatabase>
     final now = DateTime.now().millisecondsSinceEpoch;
     final id = const Uuid().v4();
     final position = await nextPosition(taskId);
-    await into(subtasks).insert(
-      SubtasksCompanion.insert(
-        id: id,
-        taskId: taskId,
-        title: title,
-        position: Value(position),
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
+    await transaction(() async {
+      await into(subtasks).insert(
+        SubtasksCompanion.insert(
+          id: id,
+          taskId: taskId,
+          title: title,
+          position: Value(position),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await attachedDatabase.enqueueSyncEvent('subtasks', id);
+    });
     return getSubtaskById(id);
   }
 }

@@ -30,21 +30,27 @@ class CommentsDao extends DatabaseAccessor<AppDatabase>
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final id = const Uuid().v4();
-    await into(comments).insert(
-      CommentsCompanion.insert(
-        id: id,
-        taskId: taskId,
-        body: body,
-        createdAt: now,
-        updatedAt: Value(now),
-      ),
-    );
+    await transaction(() async {
+      await into(comments).insert(
+        CommentsCompanion.insert(
+          id: id,
+          taskId: taskId,
+          body: body,
+          createdAt: now,
+          updatedAt: Value(now),
+        ),
+      );
+      await attachedDatabase.enqueueSyncEvent('comments', id);
+    });
     return getCommentById(id);
   }
 
   Future<void> softDeleteComment(String id, int now) async {
-    await (update(comments)..where((c) => c.id.equals(id))).write(
-      CommentsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-    );
+    await transaction(() async {
+      await (update(comments)..where((c) => c.id.equals(id))).write(
+        CommentsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await attachedDatabase.enqueueSyncEvent('comments', id);
+    });
   }
 }

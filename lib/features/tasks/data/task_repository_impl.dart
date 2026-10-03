@@ -127,16 +127,24 @@ class TaskRepositoryImpl implements TaskRepository {
     // every currently-live comment referencing it. Subtasks, task_tags,
     // task_dependencies and task_contacts have no deletedAt column —
     // their rows stay untouched so restore can bring the task back whole.
+    // Outbox: one event per mutated row (task + each cascaded comment),
+    // enqueued in the same transaction as the mutation.
     await _db.transaction(() async {
       await _dao.softDeleteTask(id, now);
       // Same `now` as the task: preserves deletedAt == task.deletedAt
       // batch identity for anty-zombie restore; updatedAt bump keeps
       // LWW parity with the task row (deletion is an equal-rank edit).
+      final cascadeComments = await (_db.select(_db.comments)
+            ..where((c) => c.taskId.equals(id) & c.deletedAt.isNull()))
+          .get();
       await (_db.update(_db.comments)
             ..where((c) => c.taskId.equals(id) & c.deletedAt.isNull()))
           .write(
         db.CommentsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
+      for (final comment in cascadeComments) {
+        await _db.enqueueSyncEvent('comments', comment.id);
+      }
     });
   }
 }

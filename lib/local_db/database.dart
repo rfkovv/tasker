@@ -9,10 +9,12 @@ import 'daos/contacts_dao.dart';
 import 'daos/comments_dao.dart';
 import 'daos/subtasks_dao.dart';
 import 'daos/tasks_dao.dart';
+import 'synced_tables.dart';
 import 'tables/app_settings_table.dart';
 import 'tables/comments_table.dart';
 import 'tables/contacts_table.dart';
 import 'tables/subtasks_table.dart';
+import 'tables/sync_outbox_table.dart';
 import 'tables/tags_table.dart';
 import 'tables/task_contacts_table.dart';
 import 'tables/task_dependencies_table.dart';
@@ -32,6 +34,7 @@ part 'database.g.dart';
     TaskContacts,
     TaskDependencies,
     AppSettings,
+    SyncOutbox,
   ],
   daos: [TasksDao, ContactsDao, SubtasksDao, CommentsDao],
 )
@@ -40,12 +43,16 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_sync_outbox_id '
+            'ON sync_outbox (id)',
+          );
         },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
@@ -58,11 +65,41 @@ class AppDatabase extends _$AppDatabase {
               'WHERE updated_at IS NULL',
             );
           }
+          if (from < 4) {
+            // CREATE TABLE only — no backfill. Existing rows are handled
+            // by initial full sync in a later layer.
+            await m.createTable(syncOutbox);
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_sync_outbox_id '
+              'ON sync_outbox (id)',
+            );
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  /// Enqueues a sync_outbox event for [tableName]/[rowId].
+  ///
+  /// MUST be called inside the same drift transaction as the mutation it
+  /// records — if the mutation rolls back, the outbox entry must not
+  /// survive. Throws [StateError] for tables outside [syncedTables]:
+  /// whitelist guard, app_settings writes must never reach the outbox.
+  Future<void> enqueueSyncEvent(String tableName, String rowId) async {
+    if (!syncedTables.contains(tableName)) {
+      throw StateError(
+        'Table "$tableName" is not whitelisted for sync outbox',
+      );
+    }
+    await into(syncOutbox).insert(
+      SyncOutboxCompanion.insert(
+        eventTable: tableName,
+        rowId: rowId,
+        enqueuedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
 
   Future<String?> lookupSettings(String key) async {
     final row = await (selectOnly(appSettings)

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../database.dart';
+import '../synced_tables.dart';
 import '../tables/contacts_table.dart';
 import '../tables/task_contacts_table.dart';
 
@@ -37,13 +38,19 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<void> upsertContact(ContactsCompanion entry) async {
-    await into(contacts).insertOnConflictUpdate(entry);
+    await transaction(() async {
+      await into(contacts).insertOnConflictUpdate(entry);
+      await attachedDatabase.enqueueSyncEvent('contacts', entry.id.value);
+    });
   }
 
   Future<void> softDeleteContact(String id, int now) async {
-    await (update(contacts)..where((c) => c.id.equals(id))).write(
-      ContactsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-    );
+    await transaction(() async {
+      await (update(contacts)..where((c) => c.id.equals(id))).write(
+        ContactsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await attachedDatabase.enqueueSyncEvent('contacts', id);
+    });
   }
 
   Future<List<Contact>> contactsForTask(String taskId) async {
@@ -61,9 +68,10 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<List<String>> taskIdsForContact(String contactId) async {
-    final rows = await (select(
-      taskContacts,
-    )..where((tc) => tc.contactId.equals(contactId))).get();
+    final rows =
+        await (select(
+          taskContacts,
+        )..where((tc) => tc.contactId.equals(contactId))).get();
     return rows.map((r) => r.taskId).toList();
   }
 
@@ -89,18 +97,35 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
+  /// Replaces all task_contacts links for [taskId].
+  ///
+  /// One outbox event per row-level change: every DELETE of an old link and
+  /// every INSERT of a new link enqueues its own event, within the same
+  /// transaction.
   Future<void> replaceContactsForTask(
     String taskId,
     List<String> contactIds,
   ) async {
     await transaction(() async {
-      await (delete(
-        taskContacts,
-      )..where((tc) => tc.taskId.equals(taskId))).go();
+      final previous = await (select(taskContacts)
+            ..where((tc) => tc.taskId.equals(taskId)))
+          .get();
+      await (delete(taskContacts)..where((tc) => tc.taskId.equals(taskId)))
+          .go();
+      for (final link in previous) {
+        await attachedDatabase.enqueueSyncEvent(
+          'task_contacts',
+          contactLinkRowId(link.taskId, link.contactId),
+        );
+      }
       for (final contactId in contactIds) {
         await into(taskContacts).insert(
           TaskContactsCompanion.insert(taskId: taskId, contactId: contactId),
           onConflict: DoNothing(),
+        );
+        await attachedDatabase.enqueueSyncEvent(
+          'task_contacts',
+          contactLinkRowId(taskId, contactId),
         );
       }
     });
@@ -114,17 +139,20 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final id = const Uuid().v4();
-    await into(contacts).insert(
-      ContactsCompanion.insert(
-        id: id,
-        name: name,
-        role: Value(role),
-        email: Value(email),
-        phone: Value(phone),
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
+    await transaction(() async {
+      await into(contacts).insert(
+        ContactsCompanion.insert(
+          id: id,
+          name: name,
+          role: Value(role),
+          email: Value(email),
+          phone: Value(phone),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await attachedDatabase.enqueueSyncEvent('contacts', id);
+    });
     return getContactById(id);
   }
 }

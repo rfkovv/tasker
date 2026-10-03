@@ -3131,6 +3131,317 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
+class $SyncOutboxTable extends SyncOutbox
+    with TableInfo<$SyncOutboxTable, SyncOutboxData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncOutboxTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _eventTableMeta = const VerificationMeta(
+    'eventTable',
+  );
+  @override
+  late final GeneratedColumn<String> eventTable = GeneratedColumn<String>(
+    'table_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
+  @override
+  late final GeneratedColumn<String> rowId = GeneratedColumn<String>(
+    'row_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enqueuedAtMeta = const VerificationMeta(
+    'enqueuedAt',
+  );
+  @override
+  late final GeneratedColumn<int> enqueuedAt = GeneratedColumn<int>(
+    'enqueued_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, eventTable, rowId, enqueuedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_outbox';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncOutboxData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('table_name')) {
+      context.handle(
+        _eventTableMeta,
+        eventTable.isAcceptableOrUnknown(data['table_name']!, _eventTableMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTableMeta);
+    }
+    if (data.containsKey('row_id')) {
+      context.handle(
+        _rowIdMeta,
+        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowIdMeta);
+    }
+    if (data.containsKey('enqueued_at')) {
+      context.handle(
+        _enqueuedAtMeta,
+        enqueuedAt.isAcceptableOrUnknown(data['enqueued_at']!, _enqueuedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_enqueuedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncOutboxData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncOutboxData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      eventTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}table_name'],
+      )!,
+      rowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}row_id'],
+      )!,
+      enqueuedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}enqueued_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncOutboxTable createAlias(String alias) {
+    return $SyncOutboxTable(attachedDatabase, alias);
+  }
+}
+
+class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
+  /// Local event id, FIFO order for push. Not a domain identifier.
+  /// autoIncrement integer PK — SQLite rowid, inherently FIFO-ordered.
+  final int id;
+
+  /// Whitelisted table name (see `syncedTables`). SQL column: table_name.
+  final String eventTable;
+
+  /// The mutated row's UUID, or composite natural key for join tables
+  /// (see `joinRowId` / `contactLinkRowId` / `dependencyRowId`).
+  final String rowId;
+
+  /// Epoch millis when the event was enqueued.
+  final int enqueuedAt;
+  const SyncOutboxData({
+    required this.id,
+    required this.eventTable,
+    required this.rowId,
+    required this.enqueuedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['table_name'] = Variable<String>(eventTable);
+    map['row_id'] = Variable<String>(rowId);
+    map['enqueued_at'] = Variable<int>(enqueuedAt);
+    return map;
+  }
+
+  SyncOutboxCompanion toCompanion(bool nullToAbsent) {
+    return SyncOutboxCompanion(
+      id: Value(id),
+      eventTable: Value(eventTable),
+      rowId: Value(rowId),
+      enqueuedAt: Value(enqueuedAt),
+    );
+  }
+
+  factory SyncOutboxData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncOutboxData(
+      id: serializer.fromJson<int>(json['id']),
+      eventTable: serializer.fromJson<String>(json['eventTable']),
+      rowId: serializer.fromJson<String>(json['rowId']),
+      enqueuedAt: serializer.fromJson<int>(json['enqueuedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'eventTable': serializer.toJson<String>(eventTable),
+      'rowId': serializer.toJson<String>(rowId),
+      'enqueuedAt': serializer.toJson<int>(enqueuedAt),
+    };
+  }
+
+  SyncOutboxData copyWith({
+    int? id,
+    String? eventTable,
+    String? rowId,
+    int? enqueuedAt,
+  }) => SyncOutboxData(
+    id: id ?? this.id,
+    eventTable: eventTable ?? this.eventTable,
+    rowId: rowId ?? this.rowId,
+    enqueuedAt: enqueuedAt ?? this.enqueuedAt,
+  );
+  SyncOutboxData copyWithCompanion(SyncOutboxCompanion data) {
+    return SyncOutboxData(
+      id: data.id.present ? data.id.value : this.id,
+      eventTable: data.eventTable.present
+          ? data.eventTable.value
+          : this.eventTable,
+      rowId: data.rowId.present ? data.rowId.value : this.rowId,
+      enqueuedAt: data.enqueuedAt.present
+          ? data.enqueuedAt.value
+          : this.enqueuedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncOutboxData(')
+          ..write('id: $id, ')
+          ..write('eventTable: $eventTable, ')
+          ..write('rowId: $rowId, ')
+          ..write('enqueuedAt: $enqueuedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, eventTable, rowId, enqueuedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncOutboxData &&
+          other.id == this.id &&
+          other.eventTable == this.eventTable &&
+          other.rowId == this.rowId &&
+          other.enqueuedAt == this.enqueuedAt);
+}
+
+class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
+  final Value<int> id;
+  final Value<String> eventTable;
+  final Value<String> rowId;
+  final Value<int> enqueuedAt;
+  const SyncOutboxCompanion({
+    this.id = const Value.absent(),
+    this.eventTable = const Value.absent(),
+    this.rowId = const Value.absent(),
+    this.enqueuedAt = const Value.absent(),
+  });
+  SyncOutboxCompanion.insert({
+    this.id = const Value.absent(),
+    required String eventTable,
+    required String rowId,
+    required int enqueuedAt,
+  }) : eventTable = Value(eventTable),
+       rowId = Value(rowId),
+       enqueuedAt = Value(enqueuedAt);
+  static Insertable<SyncOutboxData> custom({
+    Expression<int>? id,
+    Expression<String>? eventTable,
+    Expression<String>? rowId,
+    Expression<int>? enqueuedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (eventTable != null) 'table_name': eventTable,
+      if (rowId != null) 'row_id': rowId,
+      if (enqueuedAt != null) 'enqueued_at': enqueuedAt,
+    });
+  }
+
+  SyncOutboxCompanion copyWith({
+    Value<int>? id,
+    Value<String>? eventTable,
+    Value<String>? rowId,
+    Value<int>? enqueuedAt,
+  }) {
+    return SyncOutboxCompanion(
+      id: id ?? this.id,
+      eventTable: eventTable ?? this.eventTable,
+      rowId: rowId ?? this.rowId,
+      enqueuedAt: enqueuedAt ?? this.enqueuedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (eventTable.present) {
+      map['table_name'] = Variable<String>(eventTable.value);
+    }
+    if (rowId.present) {
+      map['row_id'] = Variable<String>(rowId.value);
+    }
+    if (enqueuedAt.present) {
+      map['enqueued_at'] = Variable<int>(enqueuedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncOutboxCompanion(')
+          ..write('id: $id, ')
+          ..write('eventTable: $eventTable, ')
+          ..write('rowId: $rowId, ')
+          ..write('enqueuedAt: $enqueuedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3145,6 +3456,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $SyncOutboxTable syncOutbox = $SyncOutboxTable(this);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final ContactsDao contactsDao = ContactsDao(this as AppDatabase);
   late final SubtasksDao subtasksDao = SubtasksDao(this as AppDatabase);
@@ -3163,6 +3475,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     taskContacts,
     taskDependencies,
     appSettings,
+    syncOutbox,
   ];
 }
 
@@ -6115,6 +6428,192 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
+typedef $$SyncOutboxTableCreateCompanionBuilder = SyncOutboxCompanion Function({
+  Value<int> id,
+  required String eventTable,
+  required String rowId,
+  required int enqueuedAt,
+});
+typedef $$SyncOutboxTableUpdateCompanionBuilder = SyncOutboxCompanion Function({
+  Value<int> id,
+  Value<String> eventTable,
+  Value<String> rowId,
+  Value<int> enqueuedAt,
+});
+
+class $$SyncOutboxTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncOutboxTable> {
+  $$SyncOutboxTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventTable => $composableBuilder(
+    column: $table.eventTable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get enqueuedAt => $composableBuilder(
+    column: $table.enqueuedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncOutboxTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncOutboxTable> {
+  $$SyncOutboxTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventTable => $composableBuilder(
+    column: $table.eventTable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get enqueuedAt => $composableBuilder(
+    column: $table.enqueuedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncOutboxTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncOutboxTable> {
+  $$SyncOutboxTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get eventTable => $composableBuilder(
+    column: $table.eventTable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rowId =>
+      $composableBuilder(column: $table.rowId, builder: (column) => column);
+
+  GeneratedColumn<int> get enqueuedAt => $composableBuilder(
+    column: $table.enqueuedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$SyncOutboxTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncOutboxTable,
+          SyncOutboxData,
+          $$SyncOutboxTableFilterComposer,
+          $$SyncOutboxTableOrderingComposer,
+          $$SyncOutboxTableAnnotationComposer,
+          $$SyncOutboxTableCreateCompanionBuilder,
+          $$SyncOutboxTableUpdateCompanionBuilder,
+          (
+            SyncOutboxData,
+            BaseReferences<_$AppDatabase, $SyncOutboxTable, SyncOutboxData>,
+          ),
+          SyncOutboxData,
+          PrefetchHooks Function()
+        > {
+  $$SyncOutboxTableTableManager(_$AppDatabase db, $SyncOutboxTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncOutboxTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncOutboxTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncOutboxTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> eventTable = const Value.absent(),
+                Value<String> rowId = const Value.absent(),
+                Value<int> enqueuedAt = const Value.absent(),
+              }) => SyncOutboxCompanion(
+                id: id,
+                eventTable: eventTable,
+                rowId: rowId,
+                enqueuedAt: enqueuedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String eventTable,
+                required String rowId,
+                required int enqueuedAt,
+              }) => SyncOutboxCompanion.insert(
+                id: id,
+                eventTable: eventTable,
+                rowId: rowId,
+                enqueuedAt: enqueuedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyncOutboxTable, SyncOutboxData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SyncOutboxTable,
+                    SyncOutboxData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncOutboxTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncOutboxTable,
+      SyncOutboxData,
+      $$SyncOutboxTableFilterComposer,
+      $$SyncOutboxTableOrderingComposer,
+      $$SyncOutboxTableAnnotationComposer,
+      $$SyncOutboxTableCreateCompanionBuilder,
+      $$SyncOutboxTableUpdateCompanionBuilder,
+      (
+        SyncOutboxData,
+        BaseReferences<_$AppDatabase, $SyncOutboxTable, SyncOutboxData>,
+      ),
+      SyncOutboxData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6136,4 +6635,6 @@ class $AppDatabaseManager {
       $$TaskDependenciesTableTableManager(_db, _db.taskDependencies);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$SyncOutboxTableTableManager get syncOutbox =>
+      $$SyncOutboxTableTableManager(_db, _db.syncOutbox);
 }

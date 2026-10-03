@@ -4,8 +4,8 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:taskmaster/local_db/database.dart';
 
 void main() {
-  test('migration from schemaVersion 1 to 3 adds comments.deleted_at '
-      'and comments.updated_at', () async {
+  test('migration from schemaVersion 1 adds comments.deleted_at '
+      'and comments.updated_at (lands on current schema)', () async {
     final raw = sqlite3.openInMemory();
     try {
       // Simulate a v1 database: comments table WITHOUT deleted_at/updated_at.
@@ -34,7 +34,7 @@ void main() {
 
       final appDb = AppDatabase(NativeDatabase.opened(raw));
       try {
-        // Opening the database triggers onUpgrade (1 -> 3).
+        // Opening the database triggers onUpgrade (1 -> current).
         await appDb.customStatement('SELECT 1');
 
         final rows =
@@ -48,7 +48,7 @@ void main() {
         final version = await appDb
             .customSelect('PRAGMA user_version')
             .get();
-        expect(version.single.data['user_version'], 3);
+        expect(version.single.data['user_version'], 4);
       } finally {
         await appDb.close();
       }
@@ -57,8 +57,8 @@ void main() {
     }
   });
 
-  test('migration from schemaVersion 2 to 3 adds comments.updated_at '
-      'and backfills from created_at', () async {
+  test('migration from schemaVersion 2 adds comments.updated_at '
+      'and backfills from created_at (lands on current schema)', () async {
     final raw = sqlite3.openInMemory();
     try {
       raw.execute('''
@@ -101,7 +101,7 @@ void main() {
         final version = await appDb
             .customSelect('PRAGMA user_version')
             .get();
-        expect(version.single.data['user_version'], 3);
+        expect(version.single.data['user_version'], 4);
 
         final row = await appDb
             .customSelect('SELECT created_at, updated_at FROM comments')
