@@ -79,26 +79,29 @@ void main() {
     return tester.widget<NavigationRail>(find.byType(NavigationRail));
   }
 
-  testWidgets('renders rail with two destinations and settings pinned to bottom on /',
-      (tester) async {
-    await pumpShell(tester);
+  testWidgets(
+    'renders rail with two destinations and settings pinned to bottom on /',
+    (tester) async {
+      await pumpShell(tester);
 
-    expect(find.byType(NavigationRail), findsOneWidget);
-    expect(rail(tester).selectedIndex, 0);
-    expect(rail(tester).destinations.length, 2);
-    expect(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Settings'),
-      ),
-      findsNothing,
-    );
-    expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-  });
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(rail(tester).selectedIndex, 0);
+      expect(rail(tester).destinations.length, 2);
+      expect(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Settings'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Home'), findsOneWidget);
+    },
+  );
 
-  testWidgets('navigating to /settings keeps rail unselected and renders',
-      (tester) async {
+  testWidgets('navigating to /settings keeps rail unselected and renders', (
+    tester,
+  ) async {
     await pumpShell(tester);
 
     router.go('/settings');
@@ -108,8 +111,9 @@ void main() {
     expect(find.text('Settings'), findsWidgets);
   });
 
-  testWidgets('tapping bottom settings entry navigates to /settings',
-      (tester) async {
+  testWidgets('tapping bottom settings entry navigates to /settings', (
+    tester,
+  ) async {
     await pumpShell(tester);
 
     await tester.tap(find.byIcon(Icons.settings));
@@ -119,8 +123,9 @@ void main() {
     expect(find.text('Settings'), findsWidgets);
   });
 
-  testWidgets('navigating to /contacts selects contacts destination',
-      (tester) async {
+  testWidgets('navigating to /contacts selects contacts destination', (
+    tester,
+  ) async {
     await pumpShell(tester);
 
     router.go('/contacts');
@@ -169,8 +174,9 @@ void main() {
     expect(find.text('Search'), findsOneWidget);
   });
 
-  testWidgets('mobile layout shows bottom NavigationBar instead of rail',
-      (tester) async {
+  testWidgets('mobile layout shows bottom NavigationBar instead of rail', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -190,8 +196,9 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
   });
 
-  testWidgets('mobile compact mode NavigationBar hides labels (icons only)',
-      (tester) async {
+  testWidgets('mobile compact mode NavigationBar hides labels (icons only)', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(500, 400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -208,8 +215,35 @@ void main() {
     await tester.pumpAndSettle();
 
     final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-    expect(navBar.labelBehavior,
-        NavigationDestinationLabelBehavior.alwaysHide);
+    expect(navBar.labelBehavior, NavigationDestinationLabelBehavior.alwaysHide);
     expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('landscape phone (872x390): mobile branch active, compact '
+      'NavigationBar', (tester) async {
+    tester.view.physicalSize = const Size(872, 390);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp.router(
+        routerConfig: router,
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Mobile branch (width < kDesktopBreakpoint) → bottom NavigationBar,
+    // not the desktop rail.
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+
+    // Compact (height < kCompactHeightLimit) → labels hidden, short height.
+    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navBar.labelBehavior, NavigationDestinationLabelBehavior.alwaysHide);
+    expect(navBar.height, lessThanOrEqualTo(64));
   });
 }

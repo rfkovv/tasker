@@ -4,18 +4,34 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/app_localizations.dart';
 
+/// Desktop layout breakpoint: at or above this width the desktop shell
+/// (NavigationRail) is used; below it the mobile shell (bottom
+/// NavigationBar) is active. Shared by [AppShell] and [isCompactMode] so
+/// both use the exact same branch condition.
+const kDesktopBreakpoint = 1000.0;
+
 /// Maximum available height (logical px) below which the mobile layout
 /// switches to compact mode. Typical phone landscape ≈ 390 dp → compact;
 /// portrait ≈ 800 dp → not compact; tablets keep full height → not compact.
 const kCompactHeightLimit = 600.0;
 
-/// Whether the compact mobile mode is active: the window is in the mobile
-/// width regime AND the available height is below [kCompactHeightLimit].
-/// Layout decisions must use ONLY this size-based check — never
-/// Orientation/OrientationBuilder.
+/// Whether the compact mobile mode is active.
+///
+/// Condition: the mobile layout branch is active (the SAME condition that
+/// drives the bottom NavigationBar in [AppShell] — never a separate
+/// hardcoded width threshold) AND the available height is below
+/// [kCompactHeightLimit].
+///
+/// A landscape phone ≈ 872×390 dp: mobile ✓, height 390 < 600 ✓ → compact.
+/// A portrait phone ≈ 412×892 dp: mobile ✓, height 892 ≥ 600 → not compact.
+/// Desktop ≥ [kDesktopBreakpoint] wide → never compact.
+///
+/// Reactive to window-size changes via [MediaQuery.sizeOf] — rotating the
+/// device switches modes without an app restart. Layout decisions must use
+/// ONLY this size-based check — never Orientation/OrientationBuilder.
 bool isCompactMode(BuildContext context) {
   final size = MediaQuery.sizeOf(context);
-  return size.width < 600 && size.height < kCompactHeightLimit;
+  return size.width < kDesktopBreakpoint && size.height < kCompactHeightLimit;
 }
 
 class AppShell extends StatelessWidget {
@@ -34,7 +50,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 1000;
+        final isDesktop = constraints.maxWidth >= kDesktopBreakpoint;
         if (isDesktop) {
           return _DesktopShell(
             selectedIndex: _selectedIndex(context),
@@ -149,10 +165,7 @@ class _GlobalSearchShortcutState extends State<_GlobalSearchShortcut> {
 }
 
 class _RailSettingsEntry extends StatelessWidget {
-  const _RailSettingsEntry({
-    required this.selected,
-    required this.onTap,
-  });
+  const _RailSettingsEntry({required this.selected, required this.onTap});
 
   final bool selected;
   final VoidCallback onTap;
@@ -162,7 +175,9 @@ class _RailSettingsEntry extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final labelStyle = Theme.of(context).textTheme.labelMedium;
-    final color = selected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant;
+    final color = selected
+        ? scheme.onSecondaryContainer
+        : scheme.onSurfaceVariant;
 
     return Material(
       color: selected ? scheme.secondaryContainer : Colors.transparent,
@@ -175,10 +190,7 @@ class _RailSettingsEntry extends StatelessWidget {
             children: [
               Icon(Icons.settings, color: color),
               const SizedBox(height: 4),
-              Text(
-                l10n.settings,
-                style: labelStyle?.copyWith(color: color),
-              ),
+              Text(l10n.settings, style: labelStyle?.copyWith(color: color)),
             ],
           ),
         ),

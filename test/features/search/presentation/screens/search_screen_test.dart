@@ -87,10 +87,12 @@ class SearchContactRepository implements ContactRepository {
   @override
   Stream<List<Contact>> watchAll({String? nameFilter}) {
     final q = nameFilter?.trim().toLowerCase();
-    return Stream.value(_contacts.where((c) {
-      if (q == null || q.isEmpty) return true;
-      return c.name.toLowerCase().contains(q);
-    }).toList());
+    return Stream.value(
+      _contacts.where((c) {
+        if (q == null || q.isEmpty) return true;
+        return c.name.toLowerCase().contains(q);
+      }).toList(),
+    );
   }
 
   @override
@@ -121,22 +123,27 @@ class SearchContactRepository implements ContactRepository {
 
   @override
   Future<Map<String, List<Contact>>> contactsByTaskIds(
-      List<String> taskIds) async {
+    List<String> taskIds,
+  ) async {
     return const {};
   }
 
   @override
   Future<void> replaceContactsForTask(
-      String taskId, List<String> contactIds) async {}
+    String taskId,
+    List<String> contactIds,
+  ) async {}
 }
 
 class SearchSubtaskRepository implements SubtaskRepository {
   @override
-  Stream<List<Subtask>> watchByTask(String taskId) =>
-      Stream.value(const []);
+  Stream<List<Subtask>> watchByTask(String taskId) => Stream.value(const []);
 
   @override
-  Future<Subtask> create({required String taskId, required String title}) async {
+  Future<Subtask> create({
+    required String taskId,
+    required String title,
+  }) async {
     throw UnimplementedError();
   }
 
@@ -196,8 +203,9 @@ void main() {
                 final params = state.uri.queryParameters;
                 final contactId = params['contact'];
                 final query = params['q'];
-                final initialFilter = (contactId != null ||
-                            (query != null && query.trim().isNotEmpty))
+                final initialFilter =
+                    (contactId != null ||
+                        (query != null && query.trim().isNotEmpty))
                     ? TaskFilter(
                         contactId: contactId,
                         titleQuery: (query == null || query.trim().isEmpty)
@@ -219,9 +227,7 @@ void main() {
               path: '/tasks/:id',
               builder: (context, state) {
                 openedTask = state.pathParameters['id'];
-                return const Scaffold(
-                  body: Center(child: Text('task detail')),
-                );
+                return const Scaffold(body: Center(child: Text('task detail')));
               },
             ),
             GoRoute(
@@ -247,8 +253,9 @@ void main() {
     return ProviderScope(
       overrides: [
         taskRepositoryProvider.overrideWithValue(taskRepo),
-        contacts_feature.contactRepositoryProvider
-            .overrideWithValue(contactRepo),
+        contacts_feature.contactRepositoryProvider.overrideWithValue(
+          contactRepo,
+        ),
         subtaskRepositoryProvider.overrideWithValue(SearchSubtaskRepository()),
         appSettingsProvider.overrideWith(
           () => SeededAppSettings(
@@ -260,8 +267,11 @@ void main() {
         ),
       ],
       child: MaterialApp.router(
-        routerConfig: buildRouter(taskRepo, contactRepo,
-            initialLocation: initialLocation),
+        routerConfig: buildRouter(
+          taskRepo,
+          contactRepo,
+          initialLocation: initialLocation,
+        ),
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -287,23 +297,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('finds tasks and contacts by partial name, grouped in sections',
-      (tester) async {
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([
-        buildTask('1', 'Buy milk'),
-        buildTask('2', 'Visit client'),
-      ]),
-      SearchContactRepository([buildContact('c1', 'Milk Man')]),
-    ));
+  testWidgets('finds tasks and contacts by partial name, grouped in sections', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([
+          buildTask('1', 'Buy milk'),
+          buildTask('2', 'Visit client'),
+        ]),
+        SearchContactRepository([buildContact('c1', 'Milk Man')]),
+      ),
+    );
     await tester.pump();
 
     await search(tester, 'mil');
 
-    Finder within(Finder f) => find.descendant(
-          of: find.byType(SearchScreen),
-          matching: f,
-        );
+    Finder within(Finder f) =>
+        find.descendant(of: find.byType(SearchScreen), matching: f);
     expect(within(find.text('Tasks')), findsOneWidget);
     expect(within(find.text('People')), findsOneWidget);
     expect(find.text('Buy milk'), findsOneWidget);
@@ -311,32 +322,35 @@ void main() {
     expect(find.text('Visit client'), findsNothing);
   });
 
-  testWidgets('does not list sections when query matches nothing',
-      (tester) async {
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([buildTask('1', 'Buy milk')]),
-      SearchContactRepository([buildContact('c1', 'Milk Man')]),
-    ));
+  testWidgets('does not list sections when query matches nothing', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('1', 'Buy milk')]),
+        SearchContactRepository([buildContact('c1', 'Milk Man')]),
+      ),
+    );
     await tester.pump();
 
     await search(tester, 'zzz');
 
     expect(find.byType(SearchScreen), findsOneWidget);
     expect(find.textContaining('No results'), findsOneWidget);
-    Finder within(Finder f) => find.descendant(
-          of: find.byType(SearchScreen),
-          matching: f,
-        );
+    Finder within(Finder f) =>
+        find.descendant(of: find.byType(SearchScreen), matching: f);
     expect(within(find.text('Tasks')), findsNothing);
     expect(within(find.text('People')), findsNothing);
   });
 
   testWidgets('tapping a task result opens the task detail', (tester) async {
     openedTask = null;
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([buildTask('42', 'Fix bugs')]),
-      SearchContactRepository([]),
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('42', 'Fix bugs')]),
+        SearchContactRepository([]),
+      ),
+    );
     await tester.pump();
 
     await search(tester, 'fix');
@@ -351,10 +365,12 @@ void main() {
 
   testWidgets('tapping a contact result opens the contact', (tester) async {
     openedContact = null;
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([buildTask('1', 'Something')]),
-      SearchContactRepository([buildContact('c9', 'Ruth Miller')]),
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('1', 'Something')]),
+        SearchContactRepository([buildContact('c9', 'Ruth Miller')]),
+      ),
+    );
     await tester.pump();
 
     await search(tester, 'ruth');
@@ -367,34 +383,37 @@ void main() {
     expect(find.byType(SearchScreen), findsNothing);
   });
 
-  testWidgets('show all opens the task list pre-filtered by the text query',
-      (tester) async {
+  testWidgets('show all opens the task list pre-filtered by the text query', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([
-        for (final name in const [
-          'Alpha',
-          'Baker',
-          'Charlie',
-          'Delta',
-          'Echo',
-          'Foxtrot',
-          'Golf',
-          'Hotel',
-          'India',
-          'Juliet',
-          'Kilo',
-          'Lima',
-        ])
-          buildTask('t-$name', 'Task $name'),
-        buildTask('99', 'Unrelated'),
-      ]),
-      SearchContactRepository([]),
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([
+          for (final name in const [
+            'Alpha',
+            'Baker',
+            'Charlie',
+            'Delta',
+            'Echo',
+            'Foxtrot',
+            'Golf',
+            'Hotel',
+            'India',
+            'Juliet',
+            'Kilo',
+            'Lima',
+          ])
+            buildTask('t-$name', 'Task $name'),
+          buildTask('99', 'Unrelated'),
+        ]),
+        SearchContactRepository([]),
+      ),
+    );
     await tester.pump();
 
     await search(tester, 'task');
@@ -415,21 +434,26 @@ void main() {
     expect(find.textContaining('"task"'), findsWidgets);
   });
 
-  testWidgets('contact deep link pre-filters the task list by that contact',
-      (tester) async {
+  testWidgets('contact deep link pre-filters the task list by that contact', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository(
-        [buildTask('t1', 'Linked task'), buildTask('t2', 'Other task')],
-        contactLinks: const {'c1': ['t1']},
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository(
+          [buildTask('t1', 'Linked task'), buildTask('t2', 'Other task')],
+          contactLinks: const {
+            'c1': ['t1'],
+          },
+        ),
+        SearchContactRepository([buildContact('c1', 'Alice')]),
+        initialLocation: '/?contact=c1',
       ),
-      SearchContactRepository([buildContact('c1', 'Alice')]),
-      initialLocation: '/?contact=c1',
-    ));
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Linked task'), findsOneWidget);
@@ -445,11 +469,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([buildTask('42', 'Fix bugs')]),
-      SearchContactRepository([]),
-      initialLocation: '/',
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('42', 'Fix bugs')]),
+        SearchContactRepository([]),
+        initialLocation: '/',
+      ),
+    );
     await tester.pumpAndSettle();
 
     // Single shared search entry: the magnifying-glass button.
@@ -477,11 +503,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([buildTask('1', 'Something')]),
-      SearchContactRepository([buildContact('c9', 'Ruth Miller')]),
-      initialLocation: '/',
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('1', 'Something')]),
+        SearchContactRepository([buildContact('c9', 'Ruth Miller')]),
+        initialLocation: '/',
+      ),
+    );
     await tester.pumpAndSettle();
 
     await sendCtrlK(tester);
@@ -505,11 +533,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([]),
-      SearchContactRepository([]),
-      initialLocation: '/',
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([]),
+        SearchContactRepository([]),
+        initialLocation: '/',
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('global-search-button')));
@@ -531,11 +561,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     openedTask = null;
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([buildTask('42', 'Fix bugs')]),
-      SearchContactRepository([]),
-      initialLocation: '/',
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('42', 'Fix bugs')]),
+        SearchContactRepository([]),
+        initialLocation: '/',
+      ),
+    );
     await tester.pumpAndSettle();
 
     final floating = find.byKey(const Key('floating-search-button'));
@@ -564,11 +596,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildApp(
-      SearchTaskRepository([]),
-      SearchContactRepository([]),
-      initialLocation: '/',
-    ));
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([]),
+        SearchContactRepository([]),
+        initialLocation: '/',
+      ),
+    );
     await tester.pumpAndSettle();
 
     final floating = find.byKey(const Key('floating-search-button'));
@@ -585,5 +619,50 @@ void main() {
     expect(find.byType(SearchScreen), findsNothing);
     // Visible again after the overlay closes.
     expect(floating, findsOneWidget);
+  });
+
+  testWidgets('landscape phone (872x390): compact mode — no top bar, '
+      'floating search visible and tappable, NavigationBar compact', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(872, 390);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    openedTask = null;
+    await tester.pumpWidget(
+      buildApp(
+        SearchTaskRepository([buildTask('42', 'Fix bugs')]),
+        SearchContactRepository([]),
+        initialLocation: '/',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Top bar absent in compact landscape.
+    expect(find.byType(AppBar), findsNothing);
+
+    // Floating search button visible at top-end.
+    final floating = find.byKey(const Key('floating-search-button'));
+    expect(floating, findsOneWidget);
+
+    // NavigationBar compact: reduced height, labels hidden.
+    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navBar.labelBehavior, NavigationDestinationLabelBehavior.alwaysHide);
+    expect(navBar.height, lessThanOrEqualTo(64));
+
+    // Tappable: opens the same shared search overlay.
+    await tester.tap(floating);
+    await tester.pumpAndSettle();
+    expect(find.byType(SearchScreen), findsOneWidget);
+    expect(find.byKey(const Key('search-back-button')), findsOneWidget);
+
+    await search(tester, 'fix');
+    await tester.tap(find.text('Fix bugs'));
+    await tester.pumpAndSettle();
+    expect(openedTask, '42');
+    expect(find.text('task detail'), findsOneWidget);
+    expect(find.byType(SearchScreen), findsNothing);
   });
 }

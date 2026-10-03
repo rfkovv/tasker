@@ -79,11 +79,13 @@ class CapturingTaskRepository implements TaskRepository {
 
 class FakeSubtaskRepository implements SubtaskRepository {
   @override
-  Stream<List<Subtask>> watchByTask(String taskId) =>
-      Stream.value(const []);
+  Stream<List<Subtask>> watchByTask(String taskId) => Stream.value(const []);
 
   @override
-  Future<Subtask> create({required String taskId, required String title}) async {
+  Future<Subtask> create({
+    required String taskId,
+    required String title,
+  }) async {
     throw UnimplementedError();
   }
 
@@ -122,13 +124,16 @@ class FakeContactRepository implements ContactRepository {
 
   @override
   Future<Map<String, List<Contact>>> contactsByTaskIds(
-      List<String> taskIds) async {
+    List<String> taskIds,
+  ) async {
     return const {};
   }
 
   @override
   Future<void> replaceContactsForTask(
-      String taskId, List<String> contactIds) async {}
+    String taskId,
+    List<String> contactIds,
+  ) async {}
 }
 
 class SeededAppSettings extends AppSettings {
@@ -140,11 +145,7 @@ class SeededAppSettings extends AppSettings {
   AppSettingsData build() => _data;
 }
 
-Task buildTask({
-  String? id,
-  String title = 'Task',
-  DateTime? dueDate,
-}) {
+Task buildTask({String? id, String title = 'Task', DateTime? dueDate}) {
   final now = DateTime.now();
   return Task(
     id: id ?? 'id',
@@ -172,11 +173,10 @@ void main() {
       overrides: [
         taskRepositoryProvider.overrideWithValue(repo),
         subtaskRepositoryProvider.overrideWithValue(FakeSubtaskRepository()),
-        contacts_feature.contactRepositoryProvider
-            .overrideWithValue(FakeContactRepository()),
-        appSettingsProvider.overrideWith(
-          () => SeededAppSettings(seeded),
+        contacts_feature.contactRepositoryProvider.overrideWithValue(
+          FakeContactRepository(),
         ),
+        appSettingsProvider.overrideWith(() => SeededAppSettings(seeded)),
       ],
       child: MaterialApp(
         locale: const Locale('en'),
@@ -215,8 +215,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('dragging unsigned task onto a day sets its due date',
-      (tester) async {
+  testWidgets('dragging unsigned task onto a day sets its due date', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -253,8 +254,9 @@ void main() {
     expect(local.minute, 0);
   });
 
-  testWidgets('dragging a scheduled chip back to the list clears due date',
-      (tester) async {
+  testWidgets('dragging a scheduled chip back to the list clears due date', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -262,9 +264,9 @@ void main() {
 
     final now = DateTime.now();
     final due = DateTime.utc(now.year, now.month, 10, 5, 0);
-    final repo = CapturingTaskRepository(
-      [buildTask(id: '1', title: 'Scheduled', dueDate: due)],
-    );
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Scheduled', dueDate: due),
+    ]);
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
@@ -279,8 +281,7 @@ void main() {
     expect(repo.updated.single.dueDate, isNull);
   });
 
-  testWidgets(
-      'dragging a scheduled chip to another day changes its due date '
+  testWidgets('dragging a scheduled chip to another day changes its due date '
       'keeping local time', (tester) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
@@ -288,28 +289,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final now = DateTime.now();
-    final due = tz.TZDateTime(
-      warsaw,
-      now.year,
-      now.month,
-      10,
-      9,
-      30,
-    ).toUtc();
-    final repo = CapturingTaskRepository(
-      [buildTask(id: '1', title: 'Move me', dueDate: due)],
-    );
+    final due = tz.TZDateTime(warsaw, now.year, now.month, 10, 9, 30).toUtc();
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Move me', dueDate: due),
+    ]);
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    final targetDay = tz.TZDateTime(
-      warsaw,
-      now.year,
-      now.month,
-      20,
-      12,
-      0,
-    );
+    final targetDay = tz.TZDateTime(warsaw, now.year, now.month, 20, 12, 0);
     await dragTo(
       tester,
       find.text('Move me').at(1),
@@ -347,21 +334,37 @@ void main() {
     // Month default: the full 42-day grid is present.
     expect(find.byType(SegmentedButton<CalendarViewMode>), findsOneWidget);
     // 42 day cells in month view.
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(
+      find.byWidgetPredicate(
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
+      findsNWidgets(42),
+    );
 
     await tester.tap(find.text('Week'));
     await tester.pumpAndSettle();
 
     // Week view: exactly 7 day cells.
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(7));
+    expect(
+      find.byWidgetPredicate(
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
+      findsNWidgets(7),
+    );
 
     await tester.tap(find.text('Month'));
     await tester.pumpAndSettle();
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(
+      find.byWidgetPredicate(
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
+      findsNWidgets(42),
+    );
   });
 
-  testWidgets('no-due-date filter does not hide the calendar pane',
-      (tester) async {
+  testWidgets('no-due-date filter does not hide the calendar pane', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -369,7 +372,11 @@ void main() {
 
     final now = DateTime.now();
     final repo = CapturingTaskRepository([
-      buildTask(id: 'scheduled', title: 'Scheduled', dueDate: DateTime.utc(now.year, now.month, 5, 5, 0)),
+      buildTask(
+        id: 'scheduled',
+        title: 'Scheduled',
+        dueDate: DateTime.utc(now.year, now.month, 5, 5, 0),
+      ),
       buildTask(id: 'undated', title: 'Undated'),
     ]);
     await tester.pumpWidget(buildApp(repo));
@@ -400,7 +407,10 @@ void main() {
     // of the list filter — the filter only changes the list pane contents.
     expect(find.byType(CalendarPane), findsOneWidget);
     expect(find.byType(DayCell), findsWidgets);
-    expect(find.byType(CalendarTaskTile), findsOneWidget); // scheduled task still on the grid
+    expect(
+      find.byType(CalendarTaskTile),
+      findsOneWidget,
+    ); // scheduled task still on the grid
   });
 
   testWidgets('calendar pane renders with empty task list', (tester) async {
@@ -414,10 +424,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CalendarPane), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(
+      find.byWidgetPredicate(
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
+      findsNWidgets(42),
+    );
   });
 
-  testWidgets('calendar pane renders when all tasks are undated', (tester) async {
+  testWidgets('calendar pane renders when all tasks are undated', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -431,38 +448,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CalendarPane), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(
+      find.byWidgetPredicate(
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
+      findsNWidgets(42),
+    );
     expect(find.byType(CalendarTaskTile), findsNothing);
   });
 
-  testWidgets('calendar pane renders when noDueDate filter hides all dated tasks',
-      (tester) async {
-    tester.view.physicalSize = const Size(2000, 1100);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'calendar pane renders when noDueDate filter hides all dated tasks',
+    (tester) async {
+      tester.view.physicalSize = const Size(2000, 1100);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    final now = DateTime.now();
-    final repo = CapturingTaskRepository([
-      buildTask(id: '1', title: 'Dated', dueDate: DateTime.utc(now.year, now.month, 10)),
-      buildTask(id: '2', title: 'Undated'),
-    ]);
-    await tester.pumpWidget(buildApp(repo));
-    await tester.pumpAndSettle();
+      final now = DateTime.now();
+      final repo = CapturingTaskRepository([
+        buildTask(
+          id: '1',
+          title: 'Dated',
+          dueDate: DateTime.utc(now.year, now.month, 10),
+        ),
+        buildTask(id: '2', title: 'Undated'),
+      ]);
+      await tester.pumpWidget(buildApp(repo));
+      await tester.pumpAndSettle();
 
-    // Apply noDueDate filter — list shows only undated, but calendar keeps grid.
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(TaskBoardScreen)),
-    );
-    container
-        .read(taskFilterStateProvider.notifier)
-        .setFilter(TaskFilter(noDueDate: true));
-    await tester.pumpAndSettle();
+      // Apply noDueDate filter — list shows only undated, but calendar keeps grid.
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(TaskBoardScreen)),
+      );
+      container
+          .read(taskFilterStateProvider.notifier)
+          .setFilter(TaskFilter(noDueDate: true));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(CalendarPane), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
-    expect(find.byType(CalendarTaskTile), findsOneWidget); // dated task still on grid
-  });
+      expect(find.byType(CalendarPane), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w.key?.toString().contains('day-cell') ?? false,
+        ),
+        findsNWidgets(42),
+      );
+      expect(
+        find.byType(CalendarTaskTile),
+        findsOneWidget,
+      ); // dated task still on grid
+    },
+  );
 
   testWidgets('calendar pane renders with normal mixed tasks', (tester) async {
     tester.view.physicalSize = const Size(2000, 1100);
@@ -472,22 +508,32 @@ void main() {
 
     final now = DateTime.now();
     final repo = CapturingTaskRepository([
-      buildTask(id: '1', title: 'Dated', dueDate: DateTime.utc(now.year, now.month, 15, 7)),
+      buildTask(
+        id: '1',
+        title: 'Dated',
+        dueDate: DateTime.utc(now.year, now.month, 15, 7),
+      ),
       buildTask(id: '2', title: 'Undated'),
     ]);
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
     expect(find.byType(CalendarPane), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w.key?.toString().contains('day-cell') ?? false), findsNWidgets(42));
+    expect(
+      find.byWidgetPredicate(
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
+      findsNWidgets(42),
+    );
     expect(find.byType(CalendarTaskTile), findsOneWidget);
     expect(find.text('Dated'), findsWidgets);
   });
 
   // --- Narrow layout tests (segmented control) ---
 
-  testWidgets('narrow layout shows segmented control with List and Calendar',
-      (tester) async {
+  testWidgets('narrow layout shows segmented control with List and Calendar', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -506,8 +552,9 @@ void main() {
     expect(find.text('My Task'), findsOneWidget);
   });
 
-  testWidgets('narrow layout: tapping Calendar shows calendar pane',
-      (tester) async {
+  testWidgets('narrow layout: tapping Calendar shows calendar pane', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -515,8 +562,11 @@ void main() {
 
     final now = DateTime.now();
     final repo = CapturingTaskRepository([
-      buildTask(id: '1', title: 'Scheduled',
-          dueDate: DateTime.utc(now.year, now.month, 15, 7)),
+      buildTask(
+        id: '1',
+        title: 'Scheduled',
+        dueDate: DateTime.utc(now.year, now.month, 15, 7),
+      ),
     ]);
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
@@ -534,8 +584,7 @@ void main() {
     expect(find.byType(CalendarTaskTile), findsOneWidget);
   });
 
-  testWidgets('narrow layout: tapping List shows list view',
-      (tester) async {
+  testWidgets('narrow layout: tapping List shows list view', (tester) async {
     tester.view.physicalSize = const Size(800, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -559,8 +608,9 @@ void main() {
     expect(find.text('My Task'), findsOneWidget);
   });
 
-  testWidgets('tap-to-schedule: tap task then tap day sets due date',
-      (tester) async {
+  testWidgets('tap-to-schedule: tap task then tap day sets due date', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -606,8 +656,9 @@ void main() {
     expect(find.text('Tap a day to schedule'), findsNothing);
   });
 
-  testWidgets('tap-to-schedule: cancel dismisses scheduling mode',
-      (tester) async {
+  testWidgets('tap-to-schedule: cancel dismisses scheduling mode', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -636,8 +687,9 @@ void main() {
     expect(repo.updated, isEmpty);
   });
 
-  testWidgets('calendar task tiles meet 48px minimum touch target',
-      (tester) async {
+  testWidgets('calendar task tiles meet 48px minimum touch target', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -645,8 +697,11 @@ void main() {
 
     final now = DateTime.now();
     final repo = CapturingTaskRepository([
-      buildTask(id: '1', title: 'Touch me',
-          dueDate: DateTime.utc(now.year, now.month, 15, 7)),
+      buildTask(
+        id: '1',
+        title: 'Touch me',
+        dueDate: DateTime.utc(now.year, now.month, 15, 7),
+      ),
     ]);
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
@@ -654,8 +709,9 @@ void main() {
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
 
-    final renderBox =
-        tester.renderObject<RenderBox>(find.byType(CalendarTaskTile));
+    final renderBox = tester.renderObject<RenderBox>(
+      find.byType(CalendarTaskTile),
+    );
     expect(renderBox.size.height, greaterThanOrEqualTo(48.0));
   });
 
@@ -719,8 +775,9 @@ void main() {
     expect(size.height, greaterThanOrEqualTo(48.0));
   });
 
-  testWidgets('wide desktop: unchanged, no floating search button',
-      (tester) async {
+  testWidgets('wide desktop: unchanged, no floating search button', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -740,8 +797,9 @@ void main() {
     expect(find.byKey(const Key('global-search-button')), findsOneWidget);
   });
 
-  testWidgets('compact mode: calendar pane still renders (invariant)',
-      (tester) async {
+  testWidgets('compact mode: calendar pane still renders (invariant)', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(500, 400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -759,7 +817,8 @@ void main() {
     expect(find.byType(CalendarPane), findsOneWidget);
     expect(
       find.byWidgetPredicate(
-          (w) => w.key?.toString().contains('day-cell') ?? false),
+        (w) => w.key?.toString().contains('day-cell') ?? false,
+      ),
       findsNWidgets(42),
     );
   });
@@ -780,15 +839,20 @@ void main() {
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
 
-    final searchRect =
-        tester.getRect(find.byKey(const Key('floating-search-button')));
+    final searchRect = tester.getRect(
+      find.byKey(const Key('floating-search-button')),
+    );
     final switcherRect = tester.getRect(
       find.byType(SegmentedButton<CalendarViewMode>),
     );
     final overlap = searchRect.intersect(switcherRect);
-    expect(overlap.width <= 0 || overlap.height <= 0, isTrue,
-        reason: 'floating search ($searchRect) must not cover the calendar '
-            'view switcher ($switcherRect)');
+    expect(
+      overlap.width <= 0 || overlap.height <= 0,
+      isTrue,
+      reason:
+          'floating search ($searchRect) must not cover the calendar '
+          'view switcher ($switcherRect)',
+    );
   });
 
   testWidgets('compact: floating search button does not collide with '
@@ -804,8 +868,9 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    final searchRect =
-        tester.getRect(find.byKey(const Key('floating-search-button')));
+    final searchRect = tester.getRect(
+      find.byKey(const Key('floating-search-button')),
+    );
     final fab = find.byType(FloatingActionButton);
     final fabWrapper = find.ancestor(
       of: fab,
@@ -815,8 +880,40 @@ void main() {
     expect(opacity, 1); // list overflows → FAB visible
     final fabRect = tester.getRect(fab);
     final overlap = searchRect.intersect(fabRect);
-    expect(overlap.width <= 0 || overlap.height <= 0, isTrue,
-        reason: 'floating search ($searchRect) must not collide with the '
-            'Add FAB ($fabRect)');
+    expect(
+      overlap.width <= 0 || overlap.height <= 0,
+      isTrue,
+      reason:
+          'floating search ($searchRect) must not collide with the '
+          'Add FAB ($fabRect)',
+    );
+  });
+
+  testWidgets('landscape phone (872x390): compact — AppBar absent, floating '
+      'search button present', (tester) async {
+    tester.view.physicalSize = const Size(872, 390);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Wide-but-short phone viewport: mobile branch (872 < 1000) + low
+    // height (390 < 600) → compact mode must activate.
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byKey(const Key('floating-search-button')), findsOneWidget);
+    expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+    // Same shared trigger inside the floating button.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('floating-search-button')),
+        matching: find.byKey(const Key('global-search-button')),
+      ),
+      findsOneWidget,
+    );
   });
 }
