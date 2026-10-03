@@ -36,6 +36,7 @@ class CommentsDao extends DatabaseAccessor<AppDatabase>
         taskId: taskId,
         body: body,
         createdAt: now,
+        updatedAt: Value(now),
       ),
     );
     return getCommentById(id);
@@ -43,7 +44,7 @@ class CommentsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> softDeleteComment(String id, int now) async {
     await (update(comments)..where((c) => c.id.equals(id))).write(
-      CommentsCompanion(deletedAt: Value(now)),
+      CommentsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
     );
   }
 }

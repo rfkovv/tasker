@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskmaster/features/contacts/data/contact_repository_impl.dart';
@@ -509,6 +510,128 @@ void main() {
         isEmpty,
         reason: 'soft-deleted contact must not leak into task chips',
       );
+    });
+  });
+
+  group('anty-zombie restore + updatedAt symmetry', () {
+    test('cascade delete: comment updatedAt == deletedAt == task.deletedAt',
+        () async {
+      final task = await harness.taskRepository.create(buildTask(title: 'T'));
+      final comment = await harness.commentRepository.create(
+        taskId: task.id,
+        body: 'batch',
+      );
+
+      await harness.taskRepository.delete(task.id);
+
+      final taskRow = await harness.tasksDao.getTaskById(task.id);
+      final commentRow = await harness.commentsDao.getCommentById(
+        comment.id,
+      );
+      expect(taskRow.deletedAt, isNotNull);
+      expect(commentRow.deletedAt, taskRow.deletedAt);
+      expect(commentRow.updatedAt, taskRow.deletedAt);
+      expect(commentRow.updatedAt, taskRow.updatedAt);
+    });
+
+    test(
+        'restore after cascade: comments restored AND updatedAt > old '
+        'updatedAt', () async {
+      final task = await harness.taskRepository.create(buildTask(title: 'T'));
+      final comment = await harness.commentRepository.create(
+        taskId: task.id,
+        body: 'note',
+      );
+      // Force a clearly old updatedAt so the restore bump is strictly
+      // greater regardless of same-millisecond operations.
+      const oldUpdatedAt = 1000;
+      await (harness.database.update(harness.database.comments)
+            ..where((c) => c.id.equals(comment.id)))
+          .write(db.CommentsCompanion(updatedAt: const Value(oldUpdatedAt)));
+
+      await harness.taskRepository.delete(task.id);
+      await harness.trashRepository.restoreTask(task.id);
+
+      final restored = await harness.commentsDao.getCommentById(comment.id);
+      expect(restored.deletedAt, isNull);
+      expect(restored.updatedAt, isNotNull);
+      expect(restored.updatedAt!, greaterThan(oldUpdatedAt));
+    });
+
+    test(
+        'anty-zombie: individually deleted comment stays deleted after '
+        'task restore', () async {
+      final task = await harness.taskRepository.create(buildTask(title: 'T'));
+      final cascadeComment = await harness.commentRepository.create(
+        taskId: task.id,
+        body: 'cascade batch',
+      );
+      final zombieComment = await harness.commentRepository.create(
+        taskId: task.id,
+        body: 'deleted before task',
+      );
+
+      // Individually soft-delete with a distinctive past timestamp so it
+      // can never collide with the later cascade batch identity.
+      const individualTs = 5000;
+      await (harness.database.update(harness.database.comments)
+            ..where((c) => c.id.equals(zombieComment.id)))
+          .write(
+        db.CommentsCompanion(
+          deletedAt: const Value(individualTs),
+          updatedAt: const Value(individualTs),
+        ),
+      );
+
+      await harness.taskRepository.delete(task.id);
+      await harness.trashRepository.restoreTask(task.id);
+
+      // Cascade-batch comment restored.
+      final cascadeRow = await harness.commentsDao.getCommentById(
+        cascadeComment.id,
+      );
+      expect(cascadeRow.deletedAt, isNull);
+
+      // Individually deleted comment STAYS deleted with its own timestamp.
+      final zombieRow = await harness.commentsDao.getCommentById(
+        zombieComment.id,
+      );
+      expect(zombieRow.deletedAt, individualTs);
+      expect(zombieRow.updatedAt, individualTs);
+    });
+
+    test('restoreTask on live task is a no-op (no writes)', () async {
+      final task = await harness.taskRepository.create(buildTask(title: 'L'));
+      final comment = await harness.commentRepository.create(
+        taskId: task.id,
+        body: 'c',
+      );
+      final taskBefore = await harness.tasksDao.getTaskById(task.id);
+      final commentBefore = await harness.commentsDao.getCommentById(
+        comment.id,
+      );
+
+      await harness.trashRepository.restoreTask(task.id);
+
+      final taskAfter = await harness.tasksDao.getTaskById(task.id);
+      final commentAfter = await harness.commentsDao.getCommentById(
+        comment.id,
+      );
+      expect(taskAfter.updatedAt, taskBefore.updatedAt);
+      expect(taskAfter.deletedAt, taskBefore.deletedAt);
+      expect(commentAfter.updatedAt, commentBefore.updatedAt);
+      expect(commentAfter.deletedAt, commentBefore.deletedAt);
+    });
+
+    test('restoreTask on nonexistent task is a no-op', () async {
+      final live = await harness.taskRepository.create(buildTask(title: 'X'));
+      final liveBefore = await harness.tasksDao.getTaskById(live.id);
+
+      await harness.trashRepository.restoreTask('no-such-id');
+
+      final liveAfter = await harness.tasksDao.getTaskById(live.id);
+      expect(liveAfter.updatedAt, liveBefore.updatedAt);
+      expect(await harness.trashRepository.watchDeletedTasks().first, isEmpty);
     });
   });
 }

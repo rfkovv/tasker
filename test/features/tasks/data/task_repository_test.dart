@@ -270,4 +270,24 @@ void main() {
       await fresh.close();
     }
   });
+
+  test('cascade delete: comments get updatedAt == deletedAt == task.deletedAt',
+      () async {
+    final task = await harness.repository.create(buildTask(title: 'T'));
+    final comment = await harness.database.commentsDao.createComment(
+      taskId: task.id,
+      body: 'batch comment',
+    );
+
+    await harness.repository.delete(task.id);
+
+    final taskRow = await harness.dao.getTaskById(task.id);
+    final commentRow = await harness.database.commentsDao.getCommentById(
+      comment.id,
+    );
+    expect(taskRow.deletedAt, isNotNull);
+    expect(commentRow.deletedAt, taskRow.deletedAt);
+    expect(commentRow.updatedAt, taskRow.deletedAt);
+    expect(commentRow.updatedAt, taskRow.updatedAt);
+  });
 }

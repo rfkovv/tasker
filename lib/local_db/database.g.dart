@@ -1598,6 +1598,17 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedAtMeta = const VerificationMeta(
     'deletedAt',
   );
@@ -1615,6 +1626,7 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
     taskId,
     body,
     createdAt,
+    updatedAt,
     deletedAt,
   ];
   @override
@@ -1658,6 +1670,12 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
     if (data.containsKey('deleted_at')) {
       context.handle(
         _deletedAtMeta,
@@ -1689,6 +1707,10 @@ class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      ),
       deletedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}deleted_at'],
@@ -1707,12 +1729,14 @@ class Comment extends DataClass implements Insertable<Comment> {
   final String taskId;
   final String body;
   final int createdAt;
+  final int? updatedAt;
   final int? deletedAt;
   const Comment({
     required this.id,
     required this.taskId,
     required this.body,
     required this.createdAt,
+    this.updatedAt,
     this.deletedAt,
   });
   @override
@@ -1722,6 +1746,9 @@ class Comment extends DataClass implements Insertable<Comment> {
     map['task_id'] = Variable<String>(taskId);
     map['body'] = Variable<String>(body);
     map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<int>(updatedAt);
+    }
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<int>(deletedAt);
     }
@@ -1734,6 +1761,9 @@ class Comment extends DataClass implements Insertable<Comment> {
       taskId: Value(taskId),
       body: Value(body),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
@@ -1750,6 +1780,7 @@ class Comment extends DataClass implements Insertable<Comment> {
       taskId: serializer.fromJson<String>(json['taskId']),
       body: serializer.fromJson<String>(json['body']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int?>(json['updatedAt']),
       deletedAt: serializer.fromJson<int?>(json['deletedAt']),
     );
   }
@@ -1761,6 +1792,7 @@ class Comment extends DataClass implements Insertable<Comment> {
       'taskId': serializer.toJson<String>(taskId),
       'body': serializer.toJson<String>(body),
       'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int?>(updatedAt),
       'deletedAt': serializer.toJson<int?>(deletedAt),
     };
   }
@@ -1770,12 +1802,14 @@ class Comment extends DataClass implements Insertable<Comment> {
     String? taskId,
     String? body,
     int? createdAt,
+    Value<int?> updatedAt = const Value.absent(),
     Value<int?> deletedAt = const Value.absent(),
   }) => Comment(
     id: id ?? this.id,
     taskId: taskId ?? this.taskId,
     body: body ?? this.body,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Comment copyWithCompanion(CommentsCompanion data) {
@@ -1784,6 +1818,7 @@ class Comment extends DataClass implements Insertable<Comment> {
       taskId: data.taskId.present ? data.taskId.value : this.taskId,
       body: data.body.present ? data.body.value : this.body,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
@@ -1795,13 +1830,15 @@ class Comment extends DataClass implements Insertable<Comment> {
           ..write('taskId: $taskId, ')
           ..write('body: $body, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, taskId, body, createdAt, deletedAt);
+  int get hashCode =>
+      Object.hash(id, taskId, body, createdAt, updatedAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1810,6 +1847,7 @@ class Comment extends DataClass implements Insertable<Comment> {
           other.taskId == this.taskId &&
           other.body == this.body &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
 }
 
@@ -1818,6 +1856,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
   final Value<String> taskId;
   final Value<String> body;
   final Value<int> createdAt;
+  final Value<int?> updatedAt;
   final Value<int?> deletedAt;
   final Value<int> rowid;
   const CommentsCompanion({
@@ -1825,6 +1864,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     this.taskId = const Value.absent(),
     this.body = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1833,6 +1873,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     required String taskId,
     required String body,
     required int createdAt,
+    this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1844,6 +1885,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     Expression<String>? taskId,
     Expression<String>? body,
     Expression<int>? createdAt,
+    Expression<int>? updatedAt,
     Expression<int>? deletedAt,
     Expression<int>? rowid,
   }) {
@@ -1852,6 +1894,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
       if (taskId != null) 'task_id': taskId,
       if (body != null) 'body': body,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1862,6 +1905,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     Value<String>? taskId,
     Value<String>? body,
     Value<int>? createdAt,
+    Value<int?>? updatedAt,
     Value<int?>? deletedAt,
     Value<int>? rowid,
   }) {
@@ -1870,6 +1914,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
       taskId: taskId ?? this.taskId,
       body: body ?? this.body,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1890,6 +1935,9 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
     if (deletedAt.present) {
       map['deleted_at'] = Variable<int>(deletedAt.value);
     }
@@ -1906,6 +1954,7 @@ class CommentsCompanion extends UpdateCompanion<Comment> {
           ..write('taskId: $taskId, ')
           ..write('body: $body, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4732,6 +4781,7 @@ typedef $$CommentsTableCreateCompanionBuilder = CommentsCompanion Function({
   required String taskId,
   required String body,
   required int createdAt,
+  Value<int?> updatedAt,
   Value<int?> deletedAt,
   Value<int> rowid,
 });
@@ -4740,6 +4790,7 @@ typedef $$CommentsTableUpdateCompanionBuilder = CommentsCompanion Function({
   Value<String> taskId,
   Value<String> body,
   Value<int> createdAt,
+  Value<int?> updatedAt,
   Value<int?> deletedAt,
   Value<int> rowid,
 });
@@ -4787,6 +4838,11 @@ class $$CommentsTableFilterComposer
 
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4843,6 +4899,11 @@ class $$CommentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
@@ -4889,6 +4950,9 @@ class $$CommentsTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<int> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
@@ -4949,6 +5013,7 @@ class $$CommentsTableTableManager
                 Value<String> taskId = const Value.absent(),
                 Value<String> body = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int?> updatedAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommentsCompanion(
@@ -4956,6 +5021,7 @@ class $$CommentsTableTableManager
                 taskId: taskId,
                 body: body,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 rowid: rowid,
               ),
@@ -4965,6 +5031,7 @@ class $$CommentsTableTableManager
                 required String taskId,
                 required String body,
                 required int createdAt,
+                Value<int?> updatedAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommentsCompanion.insert(
@@ -4972,6 +5039,7 @@ class $$CommentsTableTableManager
                 taskId: taskId,
                 body: body,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 rowid: rowid,
               ),

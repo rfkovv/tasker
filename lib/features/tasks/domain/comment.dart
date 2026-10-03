@@ -9,6 +9,7 @@ abstract class Comment with _$Comment {
     required String taskId,
     required String body,
     required DateTime createdAt,
+    required DateTime updatedAt,
     DateTime? deletedAt,
   }) = _Comment;
 

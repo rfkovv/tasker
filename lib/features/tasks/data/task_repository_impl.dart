@@ -129,9 +129,14 @@ class TaskRepositoryImpl implements TaskRepository {
     // their rows stay untouched so restore can bring the task back whole.
     await _db.transaction(() async {
       await _dao.softDeleteTask(id, now);
+      // Same `now` as the task: preserves deletedAt == task.deletedAt
+      // batch identity for anty-zombie restore; updatedAt bump keeps
+      // LWW parity with the task row (deletion is an equal-rank edit).
       await (_db.update(_db.comments)
             ..where((c) => c.taskId.equals(id) & c.deletedAt.isNull()))
-          .write(db.CommentsCompanion(deletedAt: Value(now)));
+          .write(
+        db.CommentsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
     });
   }
 }

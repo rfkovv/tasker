@@ -45,13 +45,25 @@ class TrashRepositoryImpl implements TrashRepository {
   @override
   Future<void> restoreTask(String id) async {
     await _db.transaction(() async {
+      final task =
+          await (_db.select(_db.tasks)..where((t) => t.id.equals(id)))
+              .getSingleOrNull();
+      // No-op for live/nonexistent tasks: no writes at all.
+      if (task == null || task.deletedAt == null) return;
+      final cascadeAt = task.deletedAt!;
       final now = DateTime.now().millisecondsSinceEpoch;
       await (_db.update(_db.tasks)..where((t) => t.id.equals(id))).write(
         db.TasksCompanion(deletedAt: Value(null), updatedAt: Value(now)),
       );
+      // Anty-zombie: restore ONLY the cascade batch — comments whose
+      // deletedAt equals the task's deletedAt. Individually deleted
+      // comments (different deletedAt) stay deleted.
       await (_db.update(_db.comments)
-            ..where((c) => c.taskId.equals(id) & c.deletedAt.isNotNull()))
-          .write(db.CommentsCompanion(deletedAt: Value(null)));
+            ..where((c) =>
+                c.taskId.equals(id) & c.deletedAt.equals(cascadeAt)))
+          .write(
+        db.CommentsCompanion(deletedAt: Value(null), updatedAt: Value(now)),
+      );
     });
   }
 

@@ -154,7 +154,8 @@ subtasks
   createdAt INT, updatedAt INT
 
 comments
-  id TEXT PK, taskId FK -> tasks, body TEXT, createdAt INT
+  id TEXT PK, taskId FK -> tasks, body TEXT, createdAt INT,
+  updatedAt INT, deletedAt INT NULL
 
 contacts
   id TEXT PK, name TEXT, role TEXT NULL, email TEXT NULL, phone TEXT NULL,
@@ -409,10 +410,15 @@ klient scalalnia. Cała logika merge po stronie klienta (Dart, testowalna).
   potwierdzenia before hard DELETE wszystkich soft-deleted rows w
   jednej transakcji. Restore = zwykła edycja (deletedAt → null, bump
   updatedAt). Przywrócenie taska czyści deletedAt na tasku ORAZ na
-  wszystkich aktualnie usuniętych wierszach go referencjonujących
-  (comments — jedyne tabele z deletedAt poza tasks/contacts; subtasks,
+  kaskadowej partii comments (wiersze z deletedAt == deletedAt taska —
+  tożsamość batchu). Comments z własnym, wcześniejszym deletedAt
+  (indywidualnie usunięte) NIE są przywracane — anty-zombie. Task i
+  partia comments dostają wspólny bump updatedAt (jeden `now` na
+  transakcję; cascade delete zapisuje deletedAt == updatedAt ==
+  task.deletedAt — deletedAt jest edycją equal-rank pod LWW). Comments
+  to jedyna tabela z deletedAt poza tasks/contacts; subtasks,
   task_tags, task_dependencies, task_contacts nie mają kolumny
-  deletedAt, wiersze pozostają nietknięte). Przywrócenie kontaktu
+  deletedAt, wiersze pozostają nietknięte. Przywrócenie kontaktu
   przywraca tylko kontakt (linki task_contacts pozostają) — NIE
   przywraca zadań po drugiej stronie linku.
 

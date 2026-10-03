@@ -8,6 +8,9 @@ class CommentMapper {
       taskId: row.taskId,
       body: row.body,
       createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAt),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(
+        row.updatedAt ?? row.createdAt,
+      ),
       deletedAt: row.deletedAt != null
           ? DateTime.fromMillisecondsSinceEpoch(row.deletedAt!)
           : null,

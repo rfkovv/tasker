@@ -201,6 +201,7 @@ class FakeCommentRepository implements CommentRepository {
       taskId: taskId,
       body: body,
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
     _comments[comment.id] = comment;
     _currentSnapshot();
@@ -404,6 +405,7 @@ void main() {
         taskId: taskId,
         body: 'Looks good',
         createdAt: DateTime(2026, 9, 9, 14, 30),
+        updatedAt: DateTime(2026, 9, 9, 14, 30),
       ),
     ]);
 
@@ -437,6 +439,7 @@ void main() {
         taskId: taskId,
         body: 'Remove me',
         createdAt: DateTime(2026, 9, 9, 9, 0),
+        updatedAt: DateTime(2026, 9, 9, 9, 0),
       ),
     ]);
 
@@ -494,6 +497,7 @@ void main() {
           taskId: taskId,
           body: 'Comment $i',
           createdAt: DateTime(2026, 9, 9, 10, i),
+          updatedAt: DateTime(2026, 9, 9, 10, i),
         ),
     ]);
 

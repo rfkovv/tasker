@@ -7,6 +7,7 @@ class Comments extends Table {
   TextColumn get taskId => text().references(Tasks, #id)();
   TextColumn get body => text()();
   IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer().nullable()();
   IntColumn get deletedAt => integer().nullable()();
 
   @override
