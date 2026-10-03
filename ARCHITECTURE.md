@@ -29,7 +29,8 @@ Dev environment: Linux.
   Row 1 (very top) = screen title (destination name, i18n);
   Row 2 (only if that menu HAS controls) = toolbar with ONLY that
   menu's controls — Tasks: Lista|Kalendarz + Filtruj (+ badge);
-  Contacts: its filter control; Settings: NO toolbar.
+  Contacts: its filter control; Kosz: segmented Zadania|Kontakty +
+  "Opróżnij kosz"; Settings: NO toolbar.
   Portrait mobile: title AND toolbar hide TOGETHER on scroll down,
   reappear on scroll up (shared DestinationBody → HideOnScrollHeader).
   Desktop (≥1000 px): both rows STATIC, always visible.
@@ -44,13 +45,17 @@ Dev environment: Linux.
   top-end of the content area (inside SafeArea, ≥48 dp, never covering
   interactive controls like the calendar view switcher). Old title-row
   (AppBar) search triggers REMOVED. Settings: no search trigger (no
-  new controls). Single shared search overlay + Ctrl+K untouched.
+  new controls). Kosz: NO search trigger (trash is not searchable in
+  MVP). Single shared search overlay + Ctrl+K untouched.
   Hide while /search overlay is open.
 - Sidebar (desktop): NavigationRail z głównymi destynacjami (Tasks,
-  Contacts); Settings przyklejony do DOŁU panelu (poza railem, pod
-  separatorem). selectedIndex raila defensywnie mapowany z trasy
-  (nieznana trasa → index 0; /settings → selectedIndex null), nigdy
-  poza zakresem destinations.
+  Contacts, Kosz); Settings przyklejony do DOŁU panelu (poza railem,
+  pod separatorem). Kosz = trzecia pozycja w raile, PRZED
+  separatorem/Ustawieniami. selectedIndex raila defensywnie mapowany
+  z trasy (nieznana trasa → index 0; /trash → 2; /settings →
+  selectedIndex null), nigdy poza zakresem destinations.
+  Mobile NavigationBar: Tasks → Contacts → Kosz → Settings
+  (Kosz na trzeciej pozycji).
 - Filtry zadań/kontaktów: przycisk "Filter" w toolbarze (dropdown:
   status, priorytet, tagi, hide done / inicjał kontaktu) + badge
   podsumowania w tym samym wierszu; lewy sidebar tylko nawigacja
@@ -333,3 +338,103 @@ expedition_tasks (composite PK)   — który task należy do ekspedycji
   uproszczenie, do przeglądu w etapie 3.
 - Sync: finalny mechanizm (serwer vs folder pliku) — pytania na etapie 6,
   architektura przygotowana pod każdy wariant.
+  
+  ## SYNC (Stage 8) — specyfikacja
+
+**Zasada nadrzędna**: dumb server, smart client. Serwer przechowuje i porządkuje,
+klient scalalnia. Cała logika merge po stronie klienta (Dart, testowalna).
+
+### Serwer (Proxmox)
+- Dart Frog, Postgres (kontener), Caddy reverse proxy (TLS, Let's Encrypt).
+- Auth: POST /auth/register, POST /auth/login (email+hasło, argon2/bcrypt),
+  token 32B losowych, serwer trzyma tylko hash. MVP: jedno konto (owner).
+- Tabele serwera: users, auth_tokens, sync_events
+  (owner_id, seq BIGSERIAL globalny, table_name, row_id, payload JSONB,
+  updated_at, device_id, received_at).
+- POST /sync/push {events:[…]} → dopisuje eventy, zwraca {firstSeq,lastSeq}.
+- GET /sync/pull?after=<seq>&limit=N → eventy ownera o seq>after, ORDER BY seq,
+  {events, nextCursor, hasMore}.
+- Serwer NIE rozstrzyga konflitków. Walidacja: whitelist nazw tabel, limit rozmiaru
+  batcha, rate limit.
+
+### Klient (drift)
+- features/sync (domain/data/presentation). Warstwa danych używa wspólnego
+  modułu bazy (local_db) BEZPOŚREDNIO — to infrastruktura, nie import cudzego
+  feature. Zakaz importu presentation innych features.
+- Migracje: sync_outbox (tableName, rowId, payload, createdAt, attempts),
+  sync_inbox (odłożone eventy z brakującymi rodzicami), sync_conflicts (log),
+  app_settings + deviceId (UUID v4 przy pierwszym starcie), lastSyncCursor,
+  serverUrl, authToken, syncEnabled.
+- Outbox: KAŻDA mutacja repozytorium zapisuje wiersz do sync_outbox W TEJ SAMEJ
+  TRANSAKCJI drift (pełny stan po mutacji, tombstone = wiersz z deletedAt).
+  Push: batch z outbox → POST /sync/push → usunięcie po ack. Błędy: backoff
+  wykładniczy + attempts.
+- Pull: GET po kursorze → aplikowanie eventów po kolei w kolejności seq,
+  transakcyjnie, kursor zapisywany razem z ostatnim aplikowanym eventem
+  (odporność na crash w trakcie).
+- Dwufazowość per batch: najpierw encje (tasks, tags, contacts), potem
+  relacje/dzieci (subtasks, comments, task_tags, task_contacts,
+  task_dependencies). Event z brakującym rodzicem → sync_inbox, retry przy
+  każdym syncu, NIE blokuje reszty.
+- DAG: przed aplikacją krawędzi task_dependencies — detekcja cyklu (DFS) na
+  aktualnym grafie; cykl → skip + wpis do sync_conflicts, nie przerywa syncu.
+
+### Semantyka konfliktów — POPRAWKA (po decyzji o Koszu)
+- Row-level LWW, cały rekord: wygrywa wiersz o większym
+  max(updatedAt, deletedAt) — niezależnie czy to edycja, usunięcie
+  czy przywrócenie. Tiebreak: deviceId; identyczne → no-op.
+- Przywrócenie z kosza = zwykła edycja (deletedAt → null, bump updatedAt).
+- Trwałe usunięcie = purge-event w logu; urządzenia hard-delete'ują
+  lokalnie; serwer trzyma tombstone do TTL (90 dni, konfigurowalne);
+  bez protokołu ack w MVP.
+
+### Kosz (model usuwania)
+- Zero nowych tabel fizycznych: kosz = wiersze z deletedAt != null,
+  surfaced w dedykowanej destynacji "Kosz" (segmented Zadania Kontakty).
+- Usunięcie taska soft-kasuje kaskadowo potomków w tej samej transakcji;
+  przywrócenie przywraca task + wszystkie aktualnie usunięte wiersze
+  go referencjonujące (subtasks, comments, task_tags,
+  task_dependencies, task_contacts). Kontakt analogicznie
+  (linki, NIE zadania po drugiej stronie).
+- Trwałe usunięcie WYŁĄCZNIE ręczne w Koszu ("Opróżnij kosz" +
+  confirm). Żadnych auto-purge, nigdzie.
+- UI: destynacja /trash. Desktop rail — trzecia pozycja, PRZED
+  separatorem/Ustawieniami. Mobile NavigationBar — trzecia pozycja
+  (Kosz), Ustawienia czwarte. Header hierarchy: tytuł "Kosz" na górze,
+  toolbar poniżej (segmented Zadania|Kontakty + "Opróżnij kosz").
+  NO search trigger (brak floating lupy w Koszu — kosz nie jest
+  przeszukiwalny w MVP). Portrait scroll-hide, desktop static — te same
+  reguły co każda destynacja. Per-item restore button na liśmie.
+  "Opróżnij kosz" = jedyny nieodwracalny action w aplikacji; dialog
+  potwierdzenia before hard DELETE wszystkich soft-deleted rows w
+  jednej transakcji. Restore = zwykła edycja (deletedAt → null, bump
+  updatedAt). Przywrócenie taska czyści deletedAt na tasku ORAZ na
+  wszystkich aktualnie usuniętych wierszach go referencjonujących
+  (comments — jedyne tabele z deletedAt poza tasks/contacts; subtasks,
+  task_tags, task_dependencies, task_contacts nie mają kolumny
+  deletedAt, wiersze pozostają nietknięte). Przywrócenie kontaktu
+  przywraca tylko kontakt (linki task_contacts pozostają) — NIE
+  przywraca zadań po drugiej stronie linku.
+
+### UI/UX
+- Settings: sekcja Sync — server URL, login, status (idle/push/pull/error,
+  timestamp), "Synchronizuj teraz", lista konfliktów DAG.
+- Auto-sync: przy starcie aplikacji + debounce 4 s po mutacjach; manual:
+  przycisk. Wszystkie stringi przez .arb (PL+EN).
+- app_settings NIE synchronizowane (per urządzenie).
+
+### Plan implementacji (warstwy, MODEL PŁATNY)
+1. Serwer: szkielet Dart Frog + Postgres + auth + healthcheck; deploy za Caddy.
+2. Klient: migracje + outbox zapisywany przez WSZYSTKIE repozytoria.
+3. Push path + backoff + testy.
+4. Pull path: inbox, LWW, dwufazowość, cycle guard + matryca testów
+   konfliktów (edycja↔edycja, edycja↔usunięcie, cykl DAG, przerwany sync,
+   out-of-order eventy, brakujący rodzic).
+5. Settings UI sync + status provider.
+6. Test integracyjny dwuetapowy (Linux + Android): równoległe operacje z
+   matrycy → identyczna zawartość baz.
+
+### Kryteria domknięcia Stage 8
+Dwie instancje osiągają identyczną zawartość bazy po równoległych operacjach
+z matrycy; sync przeżywa restart aplikacji i utratę sieci; analyze + testy
+zielone; serwer healthcheck za TLS.

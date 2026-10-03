@@ -8,6 +8,7 @@ import '../features/tasks/domain/task_filter.dart';
 import '../features/tasks/presentation/screens/task_board_screen.dart';
 import '../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../features/tasks/presentation/screens/task_form_screen.dart';
+import '../features/trash/presentation/screens/trash_screen.dart';
 import 'app_shell.dart';
 
 final appRouter = GoRouter(
@@ -22,8 +23,9 @@ final appRouter = GoRouter(
             final params = state.uri.queryParameters;
             final contactId = params['contact'];
             final query = params['q'];
-            final initialFilter = (contactId != null ||
-                        (query != null && query.trim().isNotEmpty))
+            final initialFilter =
+                (contactId != null ||
+                    (query != null && query.trim().isNotEmpty))
                 ? TaskFilter(
                     contactId: contactId,
                     titleQuery: (query == null || query.trim().isEmpty)
@@ -39,10 +41,8 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/tasks/new',
-          builder: (context, state) => TaskFormScreen(
-            taskId: 'new',
-            onSaved: () => context.go('/'),
-          ),
+          builder: (context, state) =>
+              TaskFormScreen(taskId: 'new', onSaved: () => context.go('/')),
         ),
         GoRoute(
           path: '/tasks/:id/edit',
@@ -83,6 +83,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/search',
           builder: (context, state) => const SearchScreen(),
+        ),
+        GoRoute(
+          path: '/trash',
+          builder: (context, state) => const TrashScreen(),
         ),
         GoRoute(
           path: '/settings',

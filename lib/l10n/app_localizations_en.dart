@@ -19,6 +19,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get trash => 'Trash';
+
+  @override
+  String get emptyTrash => 'Empty trash';
+
+  @override
+  String get emptyTrashConfirmTitle => 'Empty trash?';
+
+  @override
+  String get emptyTrashConfirmMessage =>
+      'All items in the trash will be permanently deleted. This cannot be undone.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get trashEmptyTasks => 'No deleted tasks';
+
+  @override
+  String get trashEmptyTasksHint => 'Deleted tasks will appear here';
+
+  @override
+  String get trashEmptyContacts => 'No deleted contacts';
+
+  @override
+  String get trashEmptyContactsHint => 'Deleted contacts will appear here';
+
+  @override
   String get addTask => 'Add Task';
 
   @override

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart';
+
 import '../../../local_db/daos/contacts_dao.dart';
 import '../../../local_db/daos/tasks_dao.dart';
 import '../../../local_db/database.dart' as db;
@@ -13,10 +15,10 @@ class TaskRepositoryImpl implements TaskRepository {
   TaskRepositoryImpl({
     required db.AppDatabase database,
     required Future<String> Function() ownerIdLoader,
-  })  : _db = database,
-        _dao = database.tasksDao,
-        _contactsDao = database.contactsDao,
-        _ownerIdLoader = ownerIdLoader;
+  }) : _db = database,
+       _dao = database.tasksDao,
+       _contactsDao = database.contactsDao,
+       _ownerIdLoader = ownerIdLoader;
 
   final db.AppDatabase _db;
   final TasksDao _dao;
@@ -30,8 +32,9 @@ class TaskRepositoryImpl implements TaskRepository {
     final priority = filter.priority?.dbValue;
     final contactId = filter.contactId;
     final titleLike = filter.titleQuery?.trim();
-    final effectiveTitle =
-        (titleLike == null || titleLike.isEmpty) ? null : titleLike;
+    final effectiveTitle = (titleLike == null || titleLike.isEmpty)
+        ? null
+        : titleLike;
 
     yield* _dao
         .watchAllTasks(
@@ -39,32 +42,34 @@ class TaskRepositoryImpl implements TaskRepository {
           priority: priority,
           titleLike: effectiveTitle,
         )
-        .asyncMap(
-      (rows) async {
-        // Resolve the set of task ids linked to the requested contact (if any)
-        // ahead of filtering so linked tasks are matched by their ids.
-        final contactTaskIds = contactId == null
-            ? null
-            : (await _contactsDao.taskIdsForContact(contactId)).toSet();
-        final tagMap =
-            await _dao.tagsForTasks(rows.map((r) => r.id).toList());
-        final tasks = rows
-            .map((row) => _mapper.toDomain(row, tagMap[row.id] ?? const []))
-            .where((task) {
-          if (filter.hideDone && task.status == TaskStatus.done) return false;
-          if (filter.tag != null && !task.tags.contains(filter.tag)) {
-            return false;
-          }
-          if (filter.noDueDate && task.dueDate != null) return false;
-          if (contactTaskIds != null && !contactTaskIds.contains(task.id)) {
-            return false;
-          }
-          return true;
-        })
-            .toList();
-        return sortTasks(tasks, filter.sort);
-      },
-    );
+        .asyncMap((rows) async {
+          // Resolve the set of task ids linked to the requested contact (if any)
+          // ahead of filtering so linked tasks are matched by their ids.
+          final contactTaskIds = contactId == null
+              ? null
+              : (await _contactsDao.taskIdsForContact(contactId)).toSet();
+          final tagMap = await _dao.tagsForTasks(
+            rows.map((r) => r.id).toList(),
+          );
+          final tasks = rows
+              .map((row) => _mapper.toDomain(row, tagMap[row.id] ?? const []))
+              .where((task) {
+                if (filter.hideDone && task.status == TaskStatus.done) {
+                  return false;
+                }
+                if (filter.tag != null && !task.tags.contains(filter.tag)) {
+                  return false;
+                }
+                if (filter.noDueDate && task.dueDate != null) return false;
+                if (contactTaskIds != null &&
+                    !contactTaskIds.contains(task.id)) {
+                  return false;
+                }
+                return true;
+              })
+              .toList();
+          return sortTasks(tasks, filter.sort);
+        });
   }
 
   @override
@@ -89,10 +94,7 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<Task> createWithContacts(
-    Task task,
-    List<String> contactIds,
-  ) async {
+  Future<Task> createWithContacts(Task task, List<String> contactIds) async {
     final ownerId = await _ownerIdLoader();
     final companion = _mapper.toCompanion(task, ownerId: ownerId);
     await _db.createTaskWithContacts(
@@ -121,6 +123,15 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> delete(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    await _dao.softDeleteTask(id, now);
+    // Cascade soft-delete in one transaction (Kosz model): the task and
+    // every currently-live comment referencing it. Subtasks, task_tags,
+    // task_dependencies and task_contacts have no deletedAt column —
+    // their rows stay untouched so restore can bring the task back whole.
+    await _db.transaction(() async {
+      await _dao.softDeleteTask(id, now);
+      await (_db.update(_db.comments)
+            ..where((c) => c.taskId.equals(id) & c.deletedAt.isNull()))
+          .write(db.CommentsCompanion(deletedAt: Value(now)));
+    });
   }
 }

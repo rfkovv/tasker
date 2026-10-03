@@ -47,7 +47,8 @@ class AppShell extends StatelessWidget {
 
   int _selectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/settings')) return 2;
+    if (location.startsWith('/settings')) return 3;
+    if (location.startsWith('/trash')) return 2;
     if (location.startsWith('/contacts')) return 1;
     return 0;
   }
@@ -81,8 +82,8 @@ class _DesktopShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final railIndex = selectedIndex >= 2 ? null : selectedIndex;
-    final isSettingsSelected = selectedIndex == 2;
+    final railIndex = selectedIndex >= 3 ? null : selectedIndex;
+    final isSettingsSelected = selectedIndex == 3;
 
     return _GlobalSearchShortcut(
       child: Scaffold(
@@ -104,6 +105,11 @@ class _DesktopShell extends StatelessWidget {
                         selectedIcon: const Icon(Icons.contacts),
                         label: Text(l10n.contacts),
                       ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.delete_outline),
+                        selectedIcon: const Icon(Icons.delete_outline),
+                        label: Text(l10n.trash),
+                      ),
                     ],
                     onDestinationSelected: (index) {
                       switch (index) {
@@ -111,6 +117,8 @@ class _DesktopShell extends StatelessWidget {
                           context.go('/');
                         case 1:
                           context.go('/contacts');
+                        case 2:
+                          context.go('/trash');
                       }
                     },
                   ),
@@ -234,6 +242,10 @@ class _MobileShell extends StatelessWidget {
             label: l10n.contacts,
           ),
           NavigationDestination(
+            icon: const Icon(Icons.delete_outline),
+            label: l10n.trash,
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.settings),
             label: l10n.settings,
           ),
@@ -245,6 +257,8 @@ class _MobileShell extends StatelessWidget {
             case 1:
               context.go('/contacts');
             case 2:
+              context.go('/trash');
+            case 3:
               context.go('/settings');
           }
         },

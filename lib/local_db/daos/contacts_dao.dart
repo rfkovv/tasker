@@ -47,28 +47,39 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<List<Contact>> contactsForTask(String taskId) async {
-    final rows = await (select(taskContacts)
-          ..where((tc) => tc.taskId.equals(taskId)))
-        .join([innerJoin(contacts, contacts.id.equalsExp(taskContacts.contactId))])
-        .get();
+    final rows =
+        await (select(
+          taskContacts,
+        )..where((tc) => tc.taskId.equals(taskId))).join([
+          innerJoin(
+            contacts,
+            contacts.id.equalsExp(taskContacts.contactId) &
+                contacts.deletedAt.isNull(),
+          ),
+        ]).get();
     return rows.map((r) => r.readTable(contacts)).toList();
   }
 
   Future<List<String>> taskIdsForContact(String contactId) async {
-    final rows = await (select(taskContacts)
-          ..where((tc) => tc.contactId.equals(contactId)))
-        .get();
+    final rows = await (select(
+      taskContacts,
+    )..where((tc) => tc.contactId.equals(contactId))).get();
     return rows.map((r) => r.taskId).toList();
   }
 
   Future<Map<String, List<Contact>>> contactsForTasks(List<String> taskIds) {
     if (taskIds.isEmpty) return Future.value(const {});
     return transaction(() async {
-      final rows = await (select(taskContacts)
-            ..where((tc) => tc.taskId.isIn(taskIds)))
-          .join([
-        innerJoin(contacts, contacts.id.equalsExp(taskContacts.contactId)),
-      ]).get();
+      final rows =
+          await (select(
+            taskContacts,
+          )..where((tc) => tc.taskId.isIn(taskIds))).join([
+            innerJoin(
+              contacts,
+              contacts.id.equalsExp(taskContacts.contactId) &
+                  contacts.deletedAt.isNull(),
+            ),
+          ]).get();
       final grouped = <String, List<Contact>>{};
       for (final row in rows) {
         final taskId = row.readTable(taskContacts).taskId;
@@ -83,15 +94,12 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     List<String> contactIds,
   ) async {
     await transaction(() async {
-      await (delete(taskContacts)
-            ..where((tc) => tc.taskId.equals(taskId)))
-          .go();
+      await (delete(
+        taskContacts,
+      )..where((tc) => tc.taskId.equals(taskId))).go();
       for (final contactId in contactIds) {
         await into(taskContacts).insert(
-          TaskContactsCompanion.insert(
-            taskId: taskId,
-            contactId: contactId,
-          ),
+          TaskContactsCompanion.insert(taskId: taskId, contactId: contactId),
           onConflict: DoNothing(),
         );
       }

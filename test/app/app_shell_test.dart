@@ -36,6 +36,10 @@ GoRouter buildRouter() {
             builder: (context, state) => const _Page(label: 'Contacts'),
           ),
           GoRoute(
+            path: '/trash',
+            builder: (context, state) => const _Page(label: 'Trash'),
+          ),
+          GoRoute(
             path: '/settings',
             builder: (context, state) => const _Page(label: 'Settings'),
           ),
@@ -80,19 +84,26 @@ void main() {
   }
 
   testWidgets(
-    'renders rail with two destinations and settings pinned to bottom on /',
+    'renders rail with three destinations and settings pinned to bottom on /',
     (tester) async {
       await pumpShell(tester);
 
       expect(find.byType(NavigationRail), findsOneWidget);
       expect(rail(tester).selectedIndex, 0);
-      expect(rail(tester).destinations.length, 2);
+      expect(rail(tester).destinations.length, 3);
       expect(
         find.descendant(
           of: find.byType(NavigationRail),
           matching: find.text('Settings'),
         ),
         findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Trash'),
+        ),
+        findsOneWidget,
       );
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('Home'), findsOneWidget);
@@ -132,6 +143,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(rail(tester).selectedIndex, 1);
+  });
+
+  testWidgets('navigating to /trash selects trash destination', (tester) async {
+    await pumpShell(tester);
+
+    router.go('/trash');
+    await tester.pumpAndSettle();
+
+    expect(rail(tester).selectedIndex, 2);
+    expect(find.text('Trash'), findsWidgets);
   });
 
   testWidgets('unmapped route defaults to first destination', (tester) async {
@@ -215,6 +236,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navBar.destinations.length, 4);
     expect(navBar.labelBehavior, NavigationDestinationLabelBehavior.alwaysHide);
     expect(find.byType(NavigationBar), findsOneWidget);
   });

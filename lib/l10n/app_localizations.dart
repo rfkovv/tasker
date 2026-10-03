@@ -116,6 +116,66 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// No description provided for @trash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get trash;
+
+  /// No description provided for @emptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty trash'**
+  String get emptyTrash;
+
+  /// No description provided for @emptyTrashConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty trash?'**
+  String get emptyTrashConfirmTitle;
+
+  /// No description provided for @emptyTrashConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'All items in the trash will be permanently deleted. This cannot be undone.'**
+  String get emptyTrashConfirmMessage;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @trashEmptyTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No deleted tasks'**
+  String get trashEmptyTasks;
+
+  /// No description provided for @trashEmptyTasksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted tasks will appear here'**
+  String get trashEmptyTasksHint;
+
+  /// No description provided for @trashEmptyContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'No deleted contacts'**
+  String get trashEmptyContacts;
+
+  /// No description provided for @trashEmptyContactsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted contacts will appear here'**
+  String get trashEmptyContactsHint;
+
   /// No description provided for @addTask.
   ///
   /// In en, this message translates to:

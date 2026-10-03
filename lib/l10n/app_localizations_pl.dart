@@ -19,6 +19,37 @@ class AppLocalizationsPl extends AppLocalizations {
   String get settings => 'Ustawienia';
 
   @override
+  String get trash => 'Kosz';
+
+  @override
+  String get emptyTrash => 'Opróżnij kosz';
+
+  @override
+  String get emptyTrashConfirmTitle => 'Opróżnić kosz?';
+
+  @override
+  String get emptyTrashConfirmMessage =>
+      'Wszystkie elementy w koszu zostaną trwale usunięte. Tego działania nie można cofnąć.';
+
+  @override
+  String get cancel => 'Anuluj';
+
+  @override
+  String get restore => 'Przywróć';
+
+  @override
+  String get trashEmptyTasks => 'Brak usuniętych zadań';
+
+  @override
+  String get trashEmptyTasksHint => 'Usunięte zadania pojawią się tutaj';
+
+  @override
+  String get trashEmptyContacts => 'Brak usuniętych kontaktów';
+
+  @override
+  String get trashEmptyContactsHint => 'Usunięte kontakty pojawią się tutaj';
+
+  @override
   String get addTask => 'Dodaj zadanie';
 
   @override
