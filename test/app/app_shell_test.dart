@@ -190,9 +190,9 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
   });
 
-  testWidgets('mobile landscape NavigationBar hides labels (icons only)',
+  testWidgets('mobile compact mode NavigationBar hides labels (icons only)',
       (tester) async {
-    tester.view.physicalSize = const Size(800, 400);
+    tester.view.physicalSize = const Size(500, 400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

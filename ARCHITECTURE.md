@@ -46,6 +46,20 @@ Dev environment: Linux.
   jako skrót do tej samej instancji); przycisk powrotu obowiązkowy;
   otwarcie wyniku zamyka wyszukiwanie i nawiguje standardowo
   (bez równoległych tras/overlay-i)
+- Compact mode (mobile): aktywowany WYŁĄCZNIE przez rozmiar okna
+  (width < 600 AND height < kCompactHeightLimit = 600 logical px) —
+  nigdy przez Orientation/OrientationBuilder. W compact mode:
+  a) pasek tytułu (AppBar) ukryty na ekranach list
+  b) globalny search trigger przeniesiony do wiersza segmented control
+     (trailing IconButton) — ta sama instancja overlay, tylko zmiana
+     lokalizacji triggera
+  c) NavigationBar: wysokość ~56 dp, etykiety ukryte (ikony);
+     touch targets ≥ 48 dp
+  d) edge-to-edge: content, footer i NavigationBar respektują
+     SafeArea/system insets (nic nie renderuje się pod system bars)
+- Poza compact mode (portrait mobile, desktop ≥ 1000 px, wysokie
+  tablety): layout pozostaje piksel-identyczny z zachowaniem
+  dotychczasowym
 
 ## Stack
 

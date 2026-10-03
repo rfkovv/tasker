@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../contacts/contacts.dart' as contacts_feature;
+import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
 import '../../../search/search.dart' show GlobalSearchButton;
 
@@ -86,11 +87,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     final subtaskProgressByTask =
         subtaskProgressAsync.value ?? const <String, SubtaskProgress>{};
 
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final compact = isCompactMode(context);
 
     return Scaffold(
-      appBar: isLandscape
+      appBar: compact
           ? null
           : AppBar(
               centerTitle: true,
@@ -196,20 +196,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               ),
             ],
           ),
-          if (isLandscape)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Material(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.8),
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: const GlobalSearchButton(),
-              ),
-            ),
         ],
       ),
     );

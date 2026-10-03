@@ -4,6 +4,20 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/app_localizations.dart';
 
+/// Maximum available height (logical px) below which the mobile layout
+/// switches to compact mode. Typical phone landscape ≈ 390 dp → compact;
+/// portrait ≈ 800 dp → not compact; tablets keep full height → not compact.
+const kCompactHeightLimit = 600.0;
+
+/// Whether the compact mobile mode is active: the window is in the mobile
+/// width regime AND the available height is below [kCompactHeightLimit].
+/// Layout decisions must use ONLY this size-based check — never
+/// Orientation/OrientationBuilder.
+bool isCompactMode(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  return size.width < 600 && size.height < kCompactHeightLimit;
+}
+
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
@@ -182,14 +196,13 @@ class _MobileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final compact = isCompactMode(context);
 
     return Scaffold(
-      body: child,
+      body: SafeArea(child: child),
       bottomNavigationBar: NavigationBar(
-        height: isLandscape ? 56 : null,
-        labelBehavior: isLandscape
+        height: compact ? 56 : null,
+        labelBehavior: compact
             ? NavigationDestinationLabelBehavior.alwaysHide
             : NavigationDestinationLabelBehavior.alwaysShow,
         selectedIndex: selectedIndex,

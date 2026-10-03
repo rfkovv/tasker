@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
 import '../../../settings/settings.dart' as settings_feature;
+import '../../../search/search.dart' show GlobalSearchButton;
 import '../../data/task_repository_provider.dart';
 import '../../domain/scheduling.dart';
 import '../../domain/task.dart';
@@ -172,26 +174,37 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final compact = isCompactMode(context);
     return Scaffold(
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SegmentedButton<bool>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: false,
-                  label: Text(l10n.tabList),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        label: Text(l10n.tabList),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        label: Text(l10n.tabCalendar),
+                      ),
+                    ],
+                    selected: {widget.showCalendar},
+                    onSelectionChanged: (selection) =>
+                        widget.onToggleView(selection.first),
+                  ),
                 ),
-                ButtonSegment(
-                  value: true,
-                  label: Text(l10n.tabCalendar),
-                ),
+                if (compact) ...[
+                  const SizedBox(width: 8),
+                  const GlobalSearchButton(),
+                ],
               ],
-              selected: {widget.showCalendar},
-              onSelectionChanged: (selection) =>
-                  widget.onToggleView(selection.first),
             ),
           ),
           if (_schedulingTask != null)

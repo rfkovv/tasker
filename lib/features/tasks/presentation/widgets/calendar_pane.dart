@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
 import '../../../settings/settings.dart' as settings_feature;
 
@@ -154,6 +155,7 @@ class _CalendarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final compact = isCompactMode(context);
     final label = switch (view.mode) {
       CalendarViewMode.month =>
         '${_shortMonth(context, view.anchor.month)} ${view.anchor.year}',
@@ -175,23 +177,31 @@ class _CalendarHeader extends StatelessWidget {
             icon: const Icon(Icons.chevron_right),
             onPressed: onNext,
           ),
-          const SizedBox(width: 8),
-          TextButton(onPressed: onToday, child: Text(l10n.today)),
+          if (!compact) ...[
+            const SizedBox(width: 8),
+            TextButton(onPressed: onToday, child: Text(l10n.today)),
+          ],
           const Spacer(),
           SegmentedButton<CalendarViewMode>(
             showSelectedIcon: false,
             segments: [
               ButtonSegment(
                 value: CalendarViewMode.month,
-                label: Text(l10n.calendarMonth),
+                label: Text(compact
+                    ? l10n.calendarMonth.substring(0, 1)
+                    : l10n.calendarMonth),
               ),
               ButtonSegment(
                 value: CalendarViewMode.week,
-                label: Text(l10n.calendarWeek),
+                label: Text(compact
+                    ? l10n.calendarWeek.substring(0, 1)
+                    : l10n.calendarWeek),
               ),
               ButtonSegment(
                 value: CalendarViewMode.quarter,
-                label: Text(l10n.calendarQuarter),
+                label: Text(compact
+                    ? l10n.calendarQuarter.substring(0, 1)
+                    : l10n.calendarQuarter),
               ),
             ],
             selected: {view.mode},

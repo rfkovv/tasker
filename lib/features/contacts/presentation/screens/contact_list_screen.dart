@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
 import '../../../search/search.dart' show GlobalSearchButton;
 
@@ -46,11 +47,10 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
   @override
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(contactListProvider(null));
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final compact = isCompactMode(context);
 
     return Scaffold(
-      appBar: isLandscape
+      appBar: compact
           ? null
           : AppBar(
               centerTitle: true,
@@ -169,7 +169,7 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
           ),
         ],
       ),
-      if (isLandscape)
+      if (compact)
         Positioned(
           top: 8,
           right: 8,

@@ -511,9 +511,9 @@ void main() {
     expect(find.text('B'), findsOneWidget);
   });
 
-  testWidgets('landscape hides AppBar and shows floating search button',
+  testWidgets('compact mode hides AppBar (search trigger lives in parent)',
       (tester) async {
-    tester.view.physicalSize = const Size(800, 400);
+    tester.view.physicalSize = const Size(500, 400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -523,10 +523,8 @@ void main() {
     ]));
     await tester.pumpAndSettle();
 
-    // AppBar absent in landscape.
+    // AppBar absent in compact mode.
     expect(find.byType(AppBar), findsNothing);
-    // Floating search button present.
-    expect(find.byIcon(Icons.search), findsOneWidget);
   });
 
   testWidgets('portrait keeps AppBar with title and search',
@@ -541,7 +539,7 @@ void main() {
     ]));
     await tester.pumpAndSettle();
 
-    // AppBar present in portrait.
+    // AppBar present in portrait (height >= 600 → not compact).
     expect(find.byType(AppBar), findsOneWidget);
     expect(find.text('Tasks'), findsOneWidget);
   });

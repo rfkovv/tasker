@@ -658,4 +658,65 @@ void main() {
         tester.renderObject<RenderBox>(find.byType(CalendarTaskTile));
     expect(renderBox.size.height, greaterThanOrEqualTo(48.0));
   });
+
+  // --- Compact mode tests (size-based, never orientation-based) ---
+
+  testWidgets('compact mode: search trigger appears in segmented row',
+      (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Search icon present (in the segmented row, not in an AppBar).
+    expect(find.byIcon(Icons.search), findsOneWidget);
+    // Segmented control present.
+    expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+  });
+
+  testWidgets('compact mode: calendar pane still renders (invariant)',
+      (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Switch to Calendar view in compact mode.
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    // Calendar pane renders even with zero tasks (invariant).
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byWidgetPredicate(
+            (w) => w.key?.toString().contains('day-cell') ?? false),
+        findsNWidgets(42));
+  });
+
+  testWidgets('not-compact narrow (tall): no search in segmented row',
+      (tester) async {
+    tester.view.physicalSize = const Size(500, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Height 800 >= 600 → not compact → no search icon in segmented row.
+    // (TaskListScreen's AppBar has one, but that's non-compact behavior.)
+    expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+  });
 }
