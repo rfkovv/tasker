@@ -24,6 +24,7 @@ import 'package:taskmaster/features/tasks/presentation/widgets/calendar_task_til
 import 'package:taskmaster/features/tasks/presentation/widgets/day_cell.dart';
 import 'package:taskmaster/features/tasks/presentation/widgets/task_tile.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
+import 'package:taskmaster/shared/hide_on_scroll_header.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -914,6 +915,170 @@ void main() {
         matching: find.byKey(const Key('global-search-button')),
       ),
       findsOneWidget,
+    );
+  });
+
+  // --- Unified mobile toolbar (segmented + filter, hide-on-scroll) ---
+
+  testWidgets('portrait mobile: ONE merged toolbar row (Lista|Kalendarz + '
+      'Filtruj), no separate filter row', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    final toolbar = find.byKey(const Key('mobile-toolbar'));
+    expect(toolbar, findsOneWidget);
+    // Segmented control AND filter button live in the SAME toolbar row.
+    expect(
+      find.descendant(
+        of: toolbar,
+        matching: find.byType(SegmentedButton<bool>),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: toolbar, matching: find.text('Filter')),
+      findsOneWidget,
+    );
+    // Exactly one Filter button in the whole screen — the list no longer
+    // renders its own filter row (showFilterBar: false).
+    expect(find.text('Filter'), findsOneWidget);
+    // Portrait top bar (title + search) unchanged.
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
+  });
+
+  testWidgets('portrait mobile: unified toolbar hides on scroll down and '
+      'reappears on scroll up', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      for (var i = 0; i < 30; i++) buildTask(id: '$i', title: 'Task $i'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    final toolbar = find.byKey(const Key('mobile-toolbar'));
+    expect(toolbar, findsOneWidget);
+
+    // Scroll down → toolbar hides.
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(toolbar, findsNothing, reason: 'toolbar must hide on scroll down');
+
+    // Scroll up → toolbar reappears.
+    await tester.drag(find.byType(ListView), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(
+      toolbar,
+      findsOneWidget,
+      reason: 'toolbar must reappear on scroll up',
+    );
+  });
+
+  testWidgets('landscape compact: merged toolbar present, floating search '
+      'visible and outside the toolbar', (tester) async {
+    tester.view.physicalSize = const Size(872, 390);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    final toolbar = find.byKey(const Key('mobile-toolbar'));
+    expect(toolbar, findsOneWidget);
+    expect(
+      find.descendant(of: toolbar, matching: find.text('Filter')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: toolbar,
+        matching: find.byType(SegmentedButton<bool>),
+      ),
+      findsOneWidget,
+    );
+
+    // Floating search button still visible, NOT inside the toolbar.
+    final floating = find.byKey(const Key('floating-search-button'));
+    expect(floating, findsOneWidget);
+    expect(find.descendant(of: toolbar, matching: floating), findsNothing);
+  });
+
+  testWidgets('desktop wide: unchanged — no unified mobile toolbar, filter '
+      'row stays inside TaskListScreen', (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Desktop must not use the mobile unified toolbar or scroll-hide.
+    expect(find.byKey(const Key('mobile-toolbar')), findsNothing);
+    expect(find.byType(HideOnScrollHeader), findsNothing);
+    // Filter row still rendered inside TaskListScreen (default showFilterBar).
+    expect(find.text('Filter'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(TaskListScreen),
+        matching: find.text('Filter'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('unified toolbar: filter dropdown still opens under Filtruj '
+      'and active badge appears in the same row', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'Open task'),
+      buildTask(id: '2', title: 'Done task').copyWith(status: TaskStatus.done),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    final toolbar = find.byKey(const Key('mobile-toolbar'));
+    await tester.tap(
+      find.descendant(of: toolbar, matching: find.text('Filter')),
+    );
+    await tester.pumpAndSettle();
+
+    // Dropdown opens with filter sections (same menu as before).
+    expect(find.text('Status'), findsOneWidget);
+    expect(find.text('Done'), findsWidgets);
+
+    // Apply "Hide done" → list filters, badge appears in the toolbar row.
+    await tester.tap(find.text('Hide done'));
+    await tester.pumpAndSettle();
+    expect(find.text('Open task'), findsOneWidget);
+    expect(find.text('Done task'), findsNothing);
+    expect(
+      find.descendant(of: toolbar, matching: find.text('Hide done')),
+      findsOneWidget,
+      reason: 'active filter badge must stay visible in the unified toolbar',
     );
   });
 }

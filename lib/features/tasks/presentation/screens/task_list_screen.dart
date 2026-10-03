@@ -8,30 +8,23 @@ import '../../../search/search.dart' show GlobalSearchButton;
 
 import '../../data/task_repository_provider.dart';
 import '../../domain/subtask.dart';
-import '../../domain/task.dart';
-import '../../domain/task_filter.dart';
-import '../../domain/task_priority.dart';
 import '../../domain/task_status.dart';
 import '../providers/subtask_progress_by_task_provider.dart';
 import '../providers/task_contacts_by_task_provider.dart';
 import '../providers/task_list_provider.dart';
 import '../widgets/calendar_task_tile.dart';
-import '../widgets/task_priority_badge.dart';
+import '../widgets/task_filter_bar.dart';
 import '../widgets/task_tile.dart';
 
-String taskStatusLabel(BuildContext context, TaskStatus status) {
-  final l10n = AppLocalizations.of(context);
-  return switch (status) {
-    TaskStatus.todo => l10n.statusTodo,
-    TaskStatus.inProgress => l10n.statusInProgress,
-    TaskStatus.done => l10n.statusDone,
-  };
-}
-
 class TaskListScreen extends ConsumerStatefulWidget {
-  const TaskListScreen({super.key, this.onOpenTask});
+  const TaskListScreen({super.key, this.onOpenTask, this.showFilterBar = true});
 
   final ValueChanged<String>? onOpenTask;
+
+  /// When false, the filter bar is not rendered — the parent (unified
+  /// mobile toolbar on the task board) owns the filter controls.
+  /// Desktop / standalone usage keeps the default `true`.
+  final bool showFilterBar;
 
   @override
   ConsumerState<TaskListScreen> createState() => _TaskListScreenState();
@@ -82,8 +75,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     final contactsAsync = ref.watch(taskContactsByTaskProvider(filter));
     final contactsByTask =
         contactsAsync.value ?? const <String, List<contacts_feature.Contact>>{};
-    final subtaskProgressAsync =
-        ref.watch(subtaskProgressByTaskProvider(filter));
+    final subtaskProgressAsync = ref.watch(
+      subtaskProgressByTaskProvider(filter),
+    );
     final subtaskProgressByTask =
         subtaskProgressAsync.value ?? const <String, SubtaskProgress>{};
 
@@ -112,8 +106,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         children: [
           Column(
             children: [
-              const _FilterBar(),
-              const Divider(height: 1),
+              if (widget.showFilterBar) ...[
+                const TaskFilterBar(),
+                const Divider(height: 1),
+              ],
               Expanded(
                 child: tasksAsync.when(
                   data: (tasks) {
@@ -145,25 +141,17 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                               final tile = TaskTile(
                                 task: task,
                                 contacts: links,
-                                subtaskProgress:
-                                    subtaskProgressByTask[task.id],
-                                onTap: () =>
-                                    widget.onOpenTask?.call(task.id),
+                                subtaskProgress: subtaskProgressByTask[task.id],
+                                onTap: () => widget.onOpenTask?.call(task.id),
                                 onToggleDone: (done) async {
-                                  final repo =
-                                      ref.read(taskRepositoryProvider);
+                                  final repo = ref.read(taskRepositoryProvider);
                                   await repo.updateStatus(
                                     task.id,
-                                    done
-                                        ? TaskStatus.done
-                                        : TaskStatus.todo,
+                                    done ? TaskStatus.done : TaskStatus.todo,
                                   );
                                 },
                               );
-                              return DraggableTask(
-                                task: task,
-                                child: tile,
-                              );
+                              return DraggableTask(task: task, child: tile);
                             },
                           ),
                         ),
@@ -175,8 +163,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                               opacity: _showFab ? 1 : 0,
                               duration: const Duration(milliseconds: 150),
                               child: FloatingActionButton.small(
-                                onPressed:
-                                    _showFab ? _handleAddTask : null,
+                                onPressed: _showFab ? _handleAddTask : null,
                                 child: const Icon(Icons.add_task),
                               ),
                             ),
@@ -188,8 +175,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
                     child: Text(
-                      AppLocalizations.of(context)
-                          .errorWithValue(e.toString()),
+                      AppLocalizations.of(context).errorWithValue(e.toString()),
                     ),
                   ),
                 ),
@@ -251,310 +237,6 @@ class _EmptyState extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-sealed class _FilterOption {
-  const _FilterOption();
-}
-
-final class _StatusFilterOption extends _FilterOption {
-  const _StatusFilterOption(this.status);
-
-  final TaskStatus? status;
-}
-
-final class _PriorityFilterOption extends _FilterOption {
-  const _PriorityFilterOption(this.priority);
-
-  final TaskPriority? priority;
-}
-
-final class _TagFilterOption extends _FilterOption {
-  const _TagFilterOption(this.tag);
-
-  final String tag;
-}
-
-final class _HideDoneFilterOption extends _FilterOption {
-  const _HideDoneFilterOption();
-}
-
-final class _NoDueDateFilterOption extends _FilterOption {
-  const _NoDueDateFilterOption();
-}
-
-final class _SortOption extends _FilterOption {
-  const _SortOption(this.sort);
-
-  final TaskSort sort;
-}
-
-final class _ResetFilterOption extends _FilterOption {
-  const _ResetFilterOption();
-}
-
-class _FilterBar extends ConsumerWidget {
-  const _FilterBar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final filter = ref.watch(taskFilterStateProvider);
-    final allTasks =
-        ref.watch(taskListProvider(TaskFilter.none)).value ?? const <Task>[];
-    final tags = (allTasks.expand((task) => task.tags)).toSet().toList()
-      ..sort();
-
-    String? contactName;
-    if (filter.contactId != null) {
-      contactName = ref
-          .watch(contacts_feature.watchContactByIdProvider(filter.contactId!))
-          .value
-          ?.name;
-    }
-    final titleQuery = filter.titleQuery?.trim();
-    final hasActiveFilter = filter != TaskFilter.none ||
-        filter.sort != TaskSort.none;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(
-        children: [
-          Builder(
-            builder: (buttonContext) => OutlinedButton.icon(
-              onPressed: () =>
-                  _openFilterMenu(buttonContext, ref, filter, tags),
-              icon: const Icon(Icons.filter_alt_outlined),
-              label: Text(l10n.filter),
-            ),
-          ),
-          if (filter.sort != TaskSort.none)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Chip(
-                avatar: const Icon(Icons.swap_vert, size: 16),
-                label: Text(_sortLabel(context, filter.sort)),
-                visualDensity: VisualDensity.compact,
-                onDeleted: () => ref
-                    .read(taskFilterStateProvider.notifier)
-                    .setFilter(filter.copyWith(sort: TaskSort.none)),
-              ),
-            ),
-          if (hasActiveFilter) ...[
-            const SizedBox(width: 12),
-            Expanded(
-              child: Chip(
-                avatar: const Icon(Icons.check, size: 16),
-                label: Text(
-                  _filterSummary(
-                    context,
-                    filter,
-                    contactName: contactName,
-                    titleQuery: titleQuery,
-                  ),
-                ),
-                visualDensity: VisualDensity.compact,
-                onDeleted: () => ref
-                    .read(taskFilterStateProvider.notifier)
-                    .setFilter(TaskFilter.none),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-Future<void> _openFilterMenu(
-  BuildContext context,
-  WidgetRef ref,
-  TaskFilter filter,
-  List<String> tags,
-) async {
-  final l10n = AppLocalizations.of(context);
-  final sectionStyle = Theme.of(context).textTheme.labelSmall;
-
-  final items = <PopupMenuEntry<_FilterOption>>[
-    PopupMenuItem(
-      enabled: false,
-      child: Text(l10n.filterStatus, style: sectionStyle),
-    ),
-    for (final status in [null, ...TaskStatus.values])
-      PopupMenuItem(
-        value: _StatusFilterOption(status),
-        child: _MenuValueRow(
-          selected: filter.status == status,
-          label: status == null
-              ? l10n.filterAll
-              : taskStatusLabel(context, status),
-        ),
-      ),
-    PopupMenuItem(
-      enabled: false,
-      child: Text(l10n.filterPriority, style: sectionStyle),
-    ),
-    for (final priority in [null, ...TaskPriority.values])
-      PopupMenuItem(
-        value: _PriorityFilterOption(priority),
-        child: _MenuValueRow(
-          selected: filter.priority == priority,
-          label: priority == null
-              ? l10n.filterAll
-              : taskPriorityLabel(context, priority),
-        ),
-      ),
-    PopupMenuItem(
-      enabled: false,
-      child: Text(l10n.filterTags, style: sectionStyle),
-    ),
-    if (tags.isEmpty)
-      PopupMenuItem(enabled: false, child: Text(l10n.noTags))
-    else
-      for (final tag in tags)
-        PopupMenuItem(
-          value: _TagFilterOption(tag),
-          child: _MenuValueRow(selected: filter.tag == tag, label: '#$tag'),
-        ),
-    const PopupMenuDivider(),
-    PopupMenuItem(
-      value: const _HideDoneFilterOption(),
-      child: _MenuValueRow(selected: filter.hideDone, label: l10n.hideDone),
-    ),
-    PopupMenuItem(
-      value: const _NoDueDateFilterOption(),
-      child: _MenuValueRow(
-        selected: filter.noDueDate,
-        label: l10n.filterNoDueDate,
-      ),
-    ),
-    const PopupMenuDivider(),
-    PopupMenuItem(
-      enabled: false,
-      child: Text(l10n.filterSort, style: sectionStyle),
-    ),
-    for (final sort in TaskSort.values)
-      PopupMenuItem(
-        value: _SortOption(sort),
-        child: _MenuValueRow(
-          selected: filter.sort == sort,
-          label: _sortLabel(context, sort),
-        ),
-      ),
-    if (filter != TaskFilter.none || filter.sort != TaskSort.none) ...[
-      const PopupMenuDivider(),
-      PopupMenuItem(
-        value: const _ResetFilterOption(),
-        child: Text(l10n.resetFilters),
-      ),
-    ],
-  ];
-
-  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-  final box = context.findRenderObject() as RenderBox;
-  final option = await showMenu<_FilterOption>(
-    context: context,
-    position: RelativeRect.fromRect(
-      Rect.fromPoints(
-        box.localToGlobal(Offset.zero, ancestor: overlay),
-        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-      ),
-      Offset.zero & overlay.size,
-    ),
-    items: items,
-  );
-  if (option != null) {
-    _applyFilter(ref, option);
-  }
-}
-
-void _applyFilter(WidgetRef ref, _FilterOption option) {
-  final notifier = ref.read(taskFilterStateProvider.notifier);
-  final filter = ref.read(taskFilterStateProvider);
-  switch (option) {
-    case _StatusFilterOption(:final status):
-      notifier.setFilter(
-        filter.copyWith(status: filter.status == status ? null : status),
-      );
-    case _PriorityFilterOption(:final priority):
-      notifier.setFilter(
-        filter.copyWith(
-          priority: filter.priority == priority ? null : priority,
-        ),
-      );
-    case _TagFilterOption(:final tag):
-      notifier.setFilter(filter.copyWith(tag: filter.tag == tag ? null : tag));
-    case _HideDoneFilterOption():
-      notifier.setFilter(filter.copyWith(hideDone: !filter.hideDone));
-    case _NoDueDateFilterOption():
-      notifier.setFilter(filter.copyWith(noDueDate: !filter.noDueDate));
-    case _SortOption(:final sort):
-      notifier.setFilter(filter.copyWith(sort: sort));
-    case _ResetFilterOption():
-      notifier.setFilter(TaskFilter.none);
-  }
-}
-
-String _sortLabel(BuildContext context, TaskSort sort) {
-  final l10n = AppLocalizations.of(context);
-  return switch (sort) {
-    TaskSort.none => l10n.sortNone,
-    TaskSort.dueAsc => l10n.sortDueAsc,
-    TaskSort.dueDesc => l10n.sortDueDesc,
-    TaskSort.createdDesc => l10n.sortCreatedDesc,
-    TaskSort.createdAsc => l10n.sortCreatedAsc,
-  };
-}
-
-String _filterSummary(
-  BuildContext context,
-  TaskFilter filter, {
-  String? contactName,
-  String? titleQuery,
-}) {
-  final l10n = AppLocalizations.of(context);
-  final parts = <String>[
-    if (filter.status != null) taskStatusLabel(context, filter.status!),
-    if (filter.priority != null) taskPriorityLabel(context, filter.priority!),
-    if (filter.tag != null) '#${filter.tag}',
-    if (filter.hideDone) l10n.hideDone,
-    if (filter.noDueDate) l10n.filterNoDueDate,
-    if (filter.contactId != null && contactName != null)
-      '${l10n.contactFilter} $contactName',
-    if (titleQuery != null && titleQuery.trim().isNotEmpty) '"$titleQuery"',
-  ];
-  return parts.join(' · ');
-}
-
-class _MenuValueRow extends StatelessWidget {
-  const _MenuValueRow({required this.selected, required this.label});
-
-  final bool selected;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.check,
-          size: 18,
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Colors.transparent,
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      ],
     );
   }
 }

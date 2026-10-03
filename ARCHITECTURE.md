@@ -33,6 +33,14 @@ Dev environment: Linux.
 - Filtry zadań/kontaktów: przycisk "Filter" nad listą (dropdown:
   status, priorytet, tagi, hide done / inicjał kontaktu) + badge
   podsumowania; lewy sidebar tylko nawigacja
+- Unified mobile toolbar (tasks, narrow/mobile — portrait AND compact
+  landscape): ONE row = segmented control Lista|Kalendarz + przycisk
+  Filtruj + aktywny badge filtra/sortowania; chuje się przy scrollu w
+  dół i wraca przy scrollu w górę (wspólny widget HideOnScrollHeader —
+  JEDNO miejsce w codebase z logiką scroll-hide). Filtr dropdown wciąż
+  otwiera się pod przyciskiem Filtruj. Floating search button bez
+  zmian (compact only, poza toolbarem; portrait top bar bez zmian).
+  Desktop (≥ 1000 px): zero zmian — filter row wewnątrz TaskListScreen.
 - Task tile: title → summary (2 linie) → deadline (+overdue) → tagi →
   "Relevant Persons" (chipy kontaktów)
 - Nazewnictwo UI: kontakty w kontekście zadania = "Relevant Persons";
@@ -66,9 +74,10 @@ Dev environment: Linux.
      touch targets ≥ 48 dp
   d) edge-to-edge: content, footer i NavigationBar respektują
      SafeArea/system insets (nic nie renderuje się pod system bars)
-- Poza compact mode (portrait mobile, desktop ≥ 1000 px, wysokie
-  tablety): layout pozostaje piksel-identyczny z zachowaniem
-  dotychczasowym
+- Poza mobile narrow (desktop ≥ 1000 px, wysokie tablety): layout
+  pozostaje piksel-identyczny z zachowaniem dotychczasowym; portrait
+  mobile traci TYLKO drugi wiersz chrome (scalony unified toolbar),
+  top bar (title + search) bez zmian
 
 ## Stack
 

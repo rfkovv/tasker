@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
+import '../../../../shared/hide_on_scroll_header.dart';
 import '../../../settings/settings.dart' as settings_feature;
 import '../../../search/search.dart' show FloatingSearchButton;
 import '../../data/task_repository_provider.dart';
@@ -13,6 +14,7 @@ import '../../domain/task.dart';
 import '../../domain/task_filter.dart';
 import '../providers/task_list_provider.dart';
 import '../widgets/calendar_pane.dart';
+import '../widgets/task_filter_bar.dart';
 import 'task_list_screen.dart';
 
 /// Two-pane tasks screen: the existing task list (backlog) on the left and
@@ -168,105 +170,126 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
     final l10n = AppLocalizations.of(context);
     final compact = isCompactMode(context);
     return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SegmentedButton<bool>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(value: false, label: Text(l10n.tabList)),
-                      ButtonSegment(value: true, label: Text(l10n.tabCalendar)),
-                    ],
-                    selected: {widget.showCalendar},
-                    onSelectionChanged: (selection) =>
-                        widget.onToggleView(selection.first),
+      body: HideOnScrollHeader(
+        // Unified mobile toolbar: Lista|Kalendarz segmented control AND
+        // Filtruj (+ active badge) in ONE row. Hides on scroll down,
+        // reappears on scroll up (shared HideOnScrollHeader).
+        header: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                key: const Key('mobile-toolbar'),
+                children: [
+                  Expanded(
+                    child: SegmentedButton<bool>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(value: false, label: Text(l10n.tabList)),
+                        ButtonSegment(
+                          value: true,
+                          label: Text(l10n.tabCalendar),
+                        ),
+                      ],
+                      selected: {widget.showCalendar},
+                      onSelectionChanged: (selection) =>
+                          widget.onToggleView(selection.first),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (_schedulingTask != null)
-            Material(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.event,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.tapToScheduleHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(() => _schedulingTask = null),
-                      child: Text(l10n.cancelSchedule),
-                    ),
-                  ],
-                ),
+                  const SizedBox(width: 12),
+                  TaskFilterBar(padding: EdgeInsets.zero, embedded: true),
+                ],
               ),
             ),
-          const Divider(height: 1),
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: widget.showCalendar
-                      ? CalendarPane(
-                          onOpenTask: widget.onOpenTask,
-                          onTaskTap: _onTaskTap,
-                          onTapDay: _schedulingTask != null ? _onTapDay : null,
-                        )
-                      : DragTarget<Task>(
-                          onWillAcceptWithDetails: (details) =>
-                              details.data.dueDate != null,
-                          onAcceptWithDetails: (details) {
-                            final task = details.data;
-                            if (task.dueDate == null) return;
-                            unawaited(
-                              ProviderScope.containerOf(context)
-                                  .read(taskRepositoryProvider)
-                                  .update(
-                                    task.copyWith(
-                                      dueDate: null,
-                                      updatedAt: DateTime.now(),
-                                    ),
-                                  ),
-                            );
-                          },
-                          builder: (context, candidates, _) {
-                            return Container(
-                              color: candidates.isNotEmpty
-                                  ? Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer
-                                        .withValues(alpha: 0.25)
-                                  : null,
-                              child: TaskListScreen(
-                                onOpenTask: widget.onOpenTask,
-                              ),
-                            );
-                          },
+            const Divider(height: 1),
+          ],
+        ),
+        child: Column(
+          children: [
+            if (_schedulingTask != null)
+              Material(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.tapToScheduleHint,
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _schedulingTask = null),
+                        child: Text(l10n.cancelSchedule),
+                      ),
+                    ],
+                  ),
                 ),
-                if (compact) const FloatingSearchButton(),
-              ],
+              ),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: widget.showCalendar
+                        ? CalendarPane(
+                            onOpenTask: widget.onOpenTask,
+                            onTaskTap: _onTaskTap,
+                            onTapDay: _schedulingTask != null
+                                ? _onTapDay
+                                : null,
+                          )
+                        : DragTarget<Task>(
+                            onWillAcceptWithDetails: (details) =>
+                                details.data.dueDate != null,
+                            onAcceptWithDetails: (details) {
+                              final task = details.data;
+                              if (task.dueDate == null) return;
+                              unawaited(
+                                ProviderScope.containerOf(context)
+                                    .read(taskRepositoryProvider)
+                                    .update(
+                                      task.copyWith(
+                                        dueDate: null,
+                                        updatedAt: DateTime.now(),
+                                      ),
+                                    ),
+                              );
+                            },
+                            builder: (context, candidates, _) {
+                              return Container(
+                                color: candidates.isNotEmpty
+                                    ? Theme.of(context)
+                                          .colorScheme
+                                          .secondaryContainer
+                                          .withValues(alpha: 0.25)
+                                    : null,
+                                child: TaskListScreen(
+                                  onOpenTask: widget.onOpenTask,
+                                  // Filter controls live in the unified
+                                  // mobile toolbar above, not inside the list.
+                                  showFilterBar: false,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  if (compact) const FloatingSearchButton(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

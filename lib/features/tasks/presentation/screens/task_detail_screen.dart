@@ -16,7 +16,7 @@ import '../providers/subtask_list_provider.dart';
 import '../providers/task_contacts_provider.dart';
 import '../providers/task_list_provider.dart';
 import '../widgets/task_priority_badge.dart';
-import 'task_list_screen.dart' show taskStatusLabel;
+import '../widgets/task_labels.dart' show taskStatusLabel;
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   const TaskDetailScreen({super.key, required this.taskId, this.onEdit});
@@ -57,9 +57,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   Future<void> _toggleStatus(Task task) async {
     final next = task.isDone ? TaskStatus.todo : TaskStatus.done;
-    await ref
-        .read(taskRepositoryProvider)
-        .updateStatus(widget.taskId, next);
+    await ref.read(taskRepositoryProvider).updateStatus(widget.taskId, next);
   }
 
   @override
@@ -68,8 +66,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final taskAsync = ref.watch(watchTaskByIdProvider(widget.taskId));
     final subtasksAsync = ref.watch(subtaskListProvider(widget.taskId));
     final commentsAsync = ref.watch(commentListProvider(widget.taskId));
-    final contactsAsync =
-        ref.watch(taskContactsManagerProvider(widget.taskId));
+    final contactsAsync = ref.watch(taskContactsManagerProvider(widget.taskId));
 
     return Scaffold(
       appBar: AppBar(
@@ -118,21 +115,19 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                               _formatDateTime(context, task.dueDate!),
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
-                                color: task.isOverdue
-                                    ? Theme.of(context).colorScheme.error
-                                    : null,
-                                fontWeight: task.isOverdue
-                                    ? FontWeight.w600
-                                    : null,
-                              ),
+                                    color: task.isOverdue
+                                        ? Theme.of(context).colorScheme.error
+                                        : null,
+                                    fontWeight: task.isOverdue
+                                        ? FontWeight.w600
+                                        : null,
+                                  ),
                             ),
                             if (task.isOverdue) ...[
                               const SizedBox(width: 8),
                               Text(
                                 l10n.overdue,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
+                                style: Theme.of(context).textTheme.labelSmall
                                     ?.copyWith(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -149,8 +144,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           spacing: 4,
                           runSpacing: 4,
                           children: [
-                            for (final tag in task.tags)
-                              Chip(label: Text(tag)),
+                            for (final tag in task.tags) Chip(label: Text(tag)),
                           ],
                         ),
                       ],
@@ -161,10 +155,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         subtasksAsync: subtasksAsync,
                         controller: _subtaskController,
                         onAdd: _addSubtask,
-                        onToggle: (id, done) async =>
-                            ref
-                                .read(subtaskRepositoryProvider)
-                                .toggle(id, isCompleted: done),
+                        onToggle: (id, done) async => ref
+                            .read(subtaskRepositoryProvider)
+                            .toggle(id, isCompleted: done),
                         onDelete: (id) async =>
                             ref.read(subtaskRepositoryProvider).delete(id),
                       ),
@@ -184,9 +177,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Text(l10n.errorWithValue(e.toString())),
-              ),
+              error: (e, _) =>
+                  Center(child: Text(l10n.errorWithValue(e.toString()))),
             ),
           ),
           const Divider(height: 1),
@@ -293,9 +285,7 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         taskStatusLabel(context, status),
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
+        style: Theme.of(context).textTheme.labelSmall
             ?.copyWith(color: color, fontWeight: FontWeight.w600),
       ),
     );
@@ -337,8 +327,9 @@ class _SubtasksSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     l10n.subtaskProgress(progress.done, progress.total),
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(color: theme.colorScheme.outline),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
                   ),
                 ],
               ],
@@ -362,8 +353,9 @@ class _SubtasksSection extends StatelessWidget {
           data: (subtasks) => subtasks.isEmpty
               ? Text(
                   l10n.noSubtasks,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
                 )
               : Column(
                   children: [
@@ -394,9 +386,7 @@ class _SubtasksSection extends StatelessWidget {
                 ),
           loading: () => const SizedBox(
             height: 40,
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
           error: (e, _) => Text(l10n.errorWithValue(e.toString())),
         ),
@@ -442,8 +432,9 @@ class _CommentsSectionState extends State<_CommentsSection> {
             if (comments.isEmpty) {
               return Text(
                 l10n.noComments,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.outline),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
               );
             }
             final visible = _visibleComments(comments);
@@ -461,10 +452,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
                 if (_expanded)
                   SizedBox(
                     height: 300,
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: commentTiles,
-                    ),
+                    child: ListView(shrinkWrap: true, children: commentTiles),
                   )
                 else
                   ...commentTiles,
@@ -472,13 +460,11 @@ class _CommentsSectionState extends State<_CommentsSection> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton(
-                      onPressed: () =>
-                          setState(() => _expanded = !_expanded),
+                      onPressed: () => setState(() => _expanded = !_expanded),
                       child: Text(
                         _expanded
                             ? l10n.showRecentOnly
-                            : l10n.showAllComments(
-                                comments.length.toString()),
+                            : l10n.showAllComments(comments.length.toString()),
                       ),
                     ),
                   ),
@@ -526,7 +512,11 @@ class _CommentsSectionState extends State<_CommentsSection> {
 }
 
 class _CommentTile extends StatelessWidget {
-  const _CommentTile({super.key, required this.comment, required this.onDelete});
+  const _CommentTile({
+    super.key,
+    required this.comment,
+    required this.onDelete,
+  });
 
   final Comment comment;
   final Future<void> Function(String id) onDelete;
@@ -566,8 +556,9 @@ class _CommentTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${months[local.month - 1]} ${local.day}, $hh:$mm',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
                 ),
               ],
             ),
@@ -602,8 +593,9 @@ class _RelevantPersonsSection extends StatelessWidget {
           data: (contacts) => contacts.isEmpty
               ? Text(
                   l10n.noContactsLinked,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
                 )
               : Wrap(
                   spacing: 8,

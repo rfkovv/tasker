@@ -15,3 +15,5 @@ export 'presentation/screens/task_detail_screen.dart';
 export 'presentation/screens/task_list_screen.dart';
 export 'presentation/widgets/calendar_pane.dart';
 export 'presentation/widgets/calendar_task_tile.dart';
+export 'presentation/widgets/task_filter_bar.dart';
+export 'presentation/widgets/task_labels.dart';
