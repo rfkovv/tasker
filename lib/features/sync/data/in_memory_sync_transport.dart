@@ -3,14 +3,21 @@ import '../domain/sync_transport.dart';
 
 /// In-process fake transport for tests and local development.
 ///
-/// Records every attempted and every successful batch. Failure injection
-/// via [failNextCalls]: the next N `pushBatch` calls throw
-/// [SyncTransportException] and are NOT recorded as delivered.
+/// Simulates a dumb server log: [pushBatch] appends events with
+/// monotonically increasing sequence numbers; [pullSince] serves events
+/// with seq > cursor. Push and pull share one log.
+///
+/// Failure injection: [failNextCalls] for push, [failNextPullCalls] for
+/// pull. Failed calls are not recorded as delivered / do not advance
+/// anything server-side beyond what was already logged.
 class InMemorySyncTransport implements SyncTransport {
   InMemorySyncTransport({this.failNextCalls = 0});
 
   /// Number of upcoming [pushBatch] calls that should fail.
   int failNextCalls;
+
+  /// Number of upcoming [pullSince] calls that should fail.
+  int failNextPullCalls = 0;
 
   /// Every [pushBatch] invocation, including ones that failed.
   final List<List<SyncEvent>> attemptedBatches = [];
@@ -23,13 +30,41 @@ class InMemorySyncTransport implements SyncTransport {
         for (final batch in deliveredBatches) ...batch,
       ];
 
+  final List<({int seq, SyncEvent event})> _serverLog = [];
+  int _nextSeq = 1;
+
+  /// Server log contents (seq, event) for assertions.
+  List<({int seq, SyncEvent event})> get serverLog =>
+      List.unmodifiable(_serverLog);
+
   @override
   Future<void> pushBatch(List<SyncEvent> events) async {
     attemptedBatches.add(List<SyncEvent>.of(events));
     if (failNextCalls > 0) {
       failNextCalls--;
-      throw SyncTransportException('injected failure');
+      throw SyncTransportException('injected push failure');
+    }
+    for (final event in events) {
+      _serverLog.add((seq: _nextSeq++, event: event));
     }
     deliveredBatches.add(List<SyncEvent>.of(events));
+  }
+
+  @override
+  Future<SyncPullResponse> pullSince(String? cursor) async {
+    if (failNextPullCalls > 0) {
+      failNextPullCalls--;
+      throw SyncTransportException('injected pull failure');
+    }
+    final after = cursor == null ? 0 : (int.tryParse(cursor) ?? 0);
+    final matching =
+        _serverLog.where((r) => r.seq > after).toList(growable: false);
+    if (matching.isEmpty) {
+      return SyncPullResponse(events: const [], nextCursor: cursor);
+    }
+    return SyncPullResponse(
+      events: [for (final r in matching) r.event],
+      nextCursor: matching.last.seq.toString(),
+    );
   }
 }
