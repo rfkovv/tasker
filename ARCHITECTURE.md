@@ -25,14 +25,35 @@ Dev environment: Linux.
 - Lewy sidebar: filtry/nawigacja pomocnicza
 - Dół okna: akcje główne (Save itp.), SafeArea
 - Prawy górny róg: pusty (docelowo pod menu/systemowe akcje)
+- UNIFIED HEADER HIERARCHY (all destinations, portrait + desktop):
+  Row 1 (very top) = screen title (destination name, i18n);
+  Row 2 (only if that menu HAS controls) = toolbar with ONLY that
+  menu's controls — Tasks: Lista|Kalendarz + Filtruj (+ badge);
+  Contacts: its filter control; Settings: NO toolbar.
+  Portrait mobile: title AND toolbar hide TOGETHER on scroll down,
+  reappear on scroll up (shared DestinationBody → HideOnScrollHeader).
+  Desktop (≥1000 px): both rows STATIC, always visible.
+  Landscape/compact: UNCHANGED — no title, compact toolbar, floating
+  search (re-verified, not modified by the hierarchy layer).
+  Shared widget: lib/shared/destination_header.dart (DestinationBody) —
+  the ONE place the title→toolbar hierarchy lives.
+- SEARCH TRIGGER = floating circular button (FloatingSearchButton)
+  EVERYWHERE a search trigger exists: portrait, landscape/compact AND
+  desktop (tasks + contacts). Documented EXCEPTION to "top-right
+  corner empty / primary actions at bottom": the floating search sits
+  top-end of the content area (inside SafeArea, ≥48 dp, never covering
+  interactive controls like the calendar view switcher). Old title-row
+  (AppBar) search triggers REMOVED. Settings: no search trigger (no
+  new controls). Single shared search overlay + Ctrl+K untouched.
+  Hide while /search overlay is open.
 - Sidebar (desktop): NavigationRail z głównymi destynacjami (Tasks,
   Contacts); Settings przyklejony do DOŁU panelu (poza railem, pod
   separatorem). selectedIndex raila defensywnie mapowany z trasy
   (nieznana trasa → index 0; /settings → selectedIndex null), nigdy
   poza zakresem destinations.
-- Filtry zadań/kontaktów: przycisk "Filter" nad listą (dropdown:
+- Filtry zadań/kontaktów: przycisk "Filter" w toolbarze (dropdown:
   status, priorytet, tagi, hide done / inicjał kontaktu) + badge
-  podsumowania; lewy sidebar tylko nawigacja
+  podsumowania w tym samym wierszu; lewy sidebar tylko nawigacja
 - Unified mobile toolbar (tasks, narrow/mobile — portrait AND compact
   landscape): ONE row = segmented control Lista|Kalendarz + przycisk
   Filtruj + aktywny badge filtra/sortowania; chuje się przy scrollu w

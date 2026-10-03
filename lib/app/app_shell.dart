@@ -15,6 +15,12 @@ const kDesktopBreakpoint = 1000.0;
 /// portrait ≈ 800 dp → not compact; tablets keep full height → not compact.
 const kCompactHeightLimit = 600.0;
 
+/// Whether the mobile layout branch is active — width below
+/// [kDesktopBreakpoint] (the SAME condition that drives the bottom
+/// NavigationBar vs NavigationRail). Reactive via [MediaQuery.sizeOf].
+bool isMobileLayout(BuildContext context) =>
+    MediaQuery.sizeOf(context).width < kDesktopBreakpoint;
+
 /// Whether the compact mobile mode is active.
 ///
 /// Condition: the mobile layout branch is active (the SAME condition that

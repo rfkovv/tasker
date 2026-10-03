@@ -17,7 +17,12 @@ import '../widgets/task_filter_bar.dart';
 import '../widgets/task_tile.dart';
 
 class TaskListScreen extends ConsumerStatefulWidget {
-  const TaskListScreen({super.key, this.onOpenTask, this.showFilterBar = true});
+  const TaskListScreen({
+    super.key,
+    this.onOpenTask,
+    this.showFilterBar = true,
+    this.showChrome = true,
+  });
 
   final ValueChanged<String>? onOpenTask;
 
@@ -25,6 +30,11 @@ class TaskListScreen extends ConsumerStatefulWidget {
   /// mobile toolbar on the task board) owns the filter controls.
   /// Desktop / standalone usage keeps the default `true`.
   final bool showFilterBar;
+
+  /// When false, renders ONLY the list body (no Scaffold/AppBar) — the
+  /// parent (DestinationBody header hierarchy on the task board) owns the
+  /// title row and chrome. Standalone usage keeps the default `true`.
+  final bool showChrome;
 
   @override
   ConsumerState<TaskListScreen> createState() => _TaskListScreenState();
@@ -83,6 +93,93 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
     final compact = isCompactMode(context);
 
+    final body = Stack(
+      children: [
+        Column(
+          children: [
+            if (widget.showFilterBar) ...[
+              const TaskFilterBar(),
+              const Divider(height: 1),
+            ],
+            Expanded(
+              child: tasksAsync.when(
+                data: (tasks) {
+                  _scheduleScrollabilityCheck();
+                  return Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: tasks.isEmpty ? 2 : tasks.length + 1,
+                          itemBuilder: (context, index) {
+                            if (tasks.isEmpty) {
+                              if (index == 0) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(32),
+                                  child: _EmptyState(),
+                                );
+                              }
+                              return _FooterTile(onAddTask: _handleAddTask);
+                            }
+                            if (index == tasks.length) {
+                              return _FooterTile(onAddTask: _handleAddTask);
+                            }
+                            final task = tasks[index];
+                            final links =
+                                contactsByTask[task.id] ??
+                                const <contacts_feature.Contact>[];
+                            final tile = TaskTile(
+                              task: task,
+                              contacts: links,
+                              subtaskProgress: subtaskProgressByTask[task.id],
+                              onTap: () => widget.onOpenTask?.call(task.id),
+                              onToggleDone: (done) async {
+                                final repo = ref.read(taskRepositoryProvider);
+                                await repo.updateStatus(
+                                  task.id,
+                                  done ? TaskStatus.done : TaskStatus.todo,
+                                );
+                              },
+                            );
+                            return DraggableTask(task: task, child: tile);
+                          },
+                        ),
+                      ),
+                      if (tasks.isNotEmpty)
+                        Positioned(
+                          right: 16,
+                          bottom: 16,
+                          child: AnimatedOpacity(
+                            opacity: _showFab ? 1 : 0,
+                            duration: const Duration(milliseconds: 150),
+                            child: FloatingActionButton.small(
+                              onPressed: _showFab ? _handleAddTask : null,
+                              child: const Icon(Icons.add_task),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Text(
+                    AppLocalizations.of(context).errorWithValue(e.toString()),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    if (!widget.showChrome) {
+      // Embedded in the task board: parent owns title row + chrome.
+      return body;
+    }
+
     return Scaffold(
       appBar: compact
           ? null
@@ -102,88 +199,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 ],
               ),
             ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              if (widget.showFilterBar) ...[
-                const TaskFilterBar(),
-                const Divider(height: 1),
-              ],
-              Expanded(
-                child: tasksAsync.when(
-                  data: (tasks) {
-                    _scheduleScrollabilityCheck();
-                    return Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: tasks.isEmpty ? 2 : tasks.length + 1,
-                            itemBuilder: (context, index) {
-                              if (tasks.isEmpty) {
-                                if (index == 0) {
-                                  return const Padding(
-                                    padding: EdgeInsets.all(32),
-                                    child: _EmptyState(),
-                                  );
-                                }
-                                return _FooterTile(onAddTask: _handleAddTask);
-                              }
-                              if (index == tasks.length) {
-                                return _FooterTile(onAddTask: _handleAddTask);
-                              }
-                              final task = tasks[index];
-                              final links =
-                                  contactsByTask[task.id] ??
-                                  const <contacts_feature.Contact>[];
-                              final tile = TaskTile(
-                                task: task,
-                                contacts: links,
-                                subtaskProgress: subtaskProgressByTask[task.id],
-                                onTap: () => widget.onOpenTask?.call(task.id),
-                                onToggleDone: (done) async {
-                                  final repo = ref.read(taskRepositoryProvider);
-                                  await repo.updateStatus(
-                                    task.id,
-                                    done ? TaskStatus.done : TaskStatus.todo,
-                                  );
-                                },
-                              );
-                              return DraggableTask(task: task, child: tile);
-                            },
-                          ),
-                        ),
-                        if (tasks.isNotEmpty)
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: AnimatedOpacity(
-                              opacity: _showFab ? 1 : 0,
-                              duration: const Duration(milliseconds: 150),
-                              child: FloatingActionButton.small(
-                                onPressed: _showFab ? _handleAddTask : null,
-                                child: const Icon(Icons.add_task),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(
-                    child: Text(
-                      AppLocalizations.of(context).errorWithValue(e.toString()),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      body: body,
     );
   }
 }

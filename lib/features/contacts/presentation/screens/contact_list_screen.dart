@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/app_shell.dart' show isCompactMode;
+import '../../../../app/app_shell.dart' show isCompactMode, isMobileLayout;
 import '../../../../l10n/app_localizations.dart';
-import '../../../search/search.dart'
-    show FloatingSearchButton, GlobalSearchButton;
+import '../../../../shared/destination_header.dart';
+import '../../../search/search.dart' show FloatingSearchButton;
 
 import '../../domain/contact.dart';
 import '../providers/contact_list_provider.dart';
@@ -48,138 +48,113 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
   @override
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(contactListProvider(null));
+    final l10n = AppLocalizations.of(context);
     final compact = isCompactMode(context);
+    // Portrait mobile: title + filter toolbar hide together on scroll.
+    // Compact: filter bar static (unchanged compact chrome). Desktop:
+    // both rows static.
+    final hideOnScroll = isMobileLayout(context) && !compact;
 
     return Scaffold(
-      appBar: compact
-          ? null
-          : AppBar(
-              centerTitle: true,
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      AppLocalizations.of(context).contacts,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const GlobalSearchButton(),
-                ],
-              ),
-            ),
       body: Stack(
         children: [
-          Column(
-            children: [
-              _ContactFilterBar(
-                contacts: contactsAsync.value ?? const <Contact>[],
-                initial: _filterInitial,
-                onChanged: (initial) =>
-                    setState(() => _filterInitial = initial),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: contactsAsync.when(
-                  data: (all) {
-                    final contacts = _filteredContacts(all);
-                    return Stack(
-                      children: [
-                        Positioned.fill(
-                          child:
-                              NotificationListener<ScrollMetricsNotification>(
-                                onNotification: (notification) {
-                                  final scrollable =
-                                      notification.metrics.maxScrollExtent > 0;
-                                  if (scrollable != _showFab && mounted) {
-                                    setState(() => _showFab = scrollable);
-                                  }
-                                  return false;
-                                },
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  itemCount: contacts.isEmpty
-                                      ? 2
-                                      : contacts.length + 1,
-                                  itemBuilder: (context, index) {
-                                    if (contacts.isEmpty) {
-                                      if (index == 0) {
-                                        return const Padding(
-                                          padding: EdgeInsets.all(32),
-                                          child: _EmptyState(),
-                                        );
-                                      }
-                                      return _FooterTile(
-                                        onAddContact: _handleAddContact,
-                                      );
-                                    }
-                                    if (index == contacts.length) {
-                                      return _FooterTile(
-                                        onAddContact: _handleAddContact,
-                                      );
-                                    }
-                                    final contact = contacts[index];
-                                    final expanded = _expandedIds.contains(
-                                      contact.id,
-                                    );
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        ContactTile(
-                                          contact: contact,
-                                          expanded: expanded,
-                                          onTap: () =>
-                                              _toggleExpanded(contact.id),
-                                          onEdit: () => widget.onOpenContact
-                                              ?.call(contact.id),
-                                        ),
-                                        if (expanded)
-                                          ContactExpansion(
-                                            contact: contact,
-                                            onSeeAllTasks: () => context.go(
-                                              '/?contact=${contact.id}',
-                                            ),
-                                            onOpenTask: (taskId) =>
-                                                context.push('/tasks/$taskId'),
-                                          ),
-                                      ],
-                                    );
-                                  },
+          DestinationBody(
+            title: l10n.contacts,
+            showTitle: !compact,
+            hideOnScroll: hideOnScroll,
+            toolbar: _ContactFilterBar(
+              contacts: contactsAsync.value ?? const <Contact>[],
+              initial: _filterInitial,
+              onChanged: (initial) => setState(() => _filterInitial = initial),
+            ),
+            child: contactsAsync.when(
+              data: (all) {
+                final contacts = _filteredContacts(all);
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: NotificationListener<ScrollMetricsNotification>(
+                        onNotification: (notification) {
+                          final scrollable =
+                              notification.metrics.maxScrollExtent > 0;
+                          if (scrollable != _showFab && mounted) {
+                            setState(() => _showFab = scrollable);
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: contacts.isEmpty ? 2 : contacts.length + 1,
+                          itemBuilder: (context, index) {
+                            if (contacts.isEmpty) {
+                              if (index == 0) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(32),
+                                  child: _EmptyState(),
+                                );
+                              }
+                              return _FooterTile(
+                                onAddContact: _handleAddContact,
+                              );
+                            }
+                            if (index == contacts.length) {
+                              return _FooterTile(
+                                onAddContact: _handleAddContact,
+                              );
+                            }
+                            final contact = contacts[index];
+                            final expanded = _expandedIds.contains(contact.id);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ContactTile(
+                                  contact: contact,
+                                  expanded: expanded,
+                                  onTap: () => _toggleExpanded(contact.id),
+                                  onEdit: () =>
+                                      widget.onOpenContact?.call(contact.id),
                                 ),
-                              ),
+                                if (expanded)
+                                  ContactExpansion(
+                                    contact: contact,
+                                    onSeeAllTasks: () =>
+                                        context.go('/?contact=${contact.id}'),
+                                    onOpenTask: (taskId) =>
+                                        context.push('/tasks/$taskId'),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
-                        if (contacts.isNotEmpty)
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: AnimatedOpacity(
-                              opacity: _showFab ? 1 : 0,
-                              duration: const Duration(milliseconds: 150),
-                              child: FloatingActionButton.small(
-                                onPressed: _showFab ? _handleAddContact : null,
-                                child: const Icon(Icons.person_add),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(
-                    child: Text(
-                      AppLocalizations.of(context).errorWithValue(e.toString()),
+                      ),
                     ),
-                  ),
+                    if (contacts.isNotEmpty)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: AnimatedOpacity(
+                          opacity: _showFab ? 1 : 0,
+                          duration: const Duration(milliseconds: 150),
+                          child: FloatingActionButton.small(
+                            onPressed: _showFab ? _handleAddContact : null,
+                            child: const Icon(Icons.person_add),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Text(
+                  AppLocalizations.of(context).errorWithValue(e.toString()),
                 ),
               ),
-            ],
+            ),
           ),
-          if (compact) const FloatingSearchButton(),
+          // Floating search trigger: portrait, compact AND desktop
+          // (decision 2 — search trigger is the floating button everywhere).
+          const FloatingSearchButton(),
         ],
       ),
     );

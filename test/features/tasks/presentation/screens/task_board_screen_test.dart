@@ -718,8 +718,8 @@ void main() {
 
   // --- Compact mode tests (size-based, never orientation-based) ---
 
-  testWidgets('narrow-portrait: not compact, AppBar visible, no floating '
-      'search button', (tester) async {
+  testWidgets('narrow-portrait: title above toolbar, floating search, no '
+      'AppBar', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -731,9 +731,21 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(find.byKey(const Key('floating-search-button')), findsNothing);
-    // Non-compact keeps the search trigger in the AppBar title.
+    // Header hierarchy: title row above the controls toolbar.
+    expect(find.byType(AppBar), findsNothing);
+    final title = find.byKey(const Key('destination-title'));
+    expect(title, findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-toolbar')), findsOneWidget);
+    final titleRect = tester.getRect(title);
+    final toolbarRect = tester.getRect(find.byKey(const Key('mobile-toolbar')));
+    expect(
+      titleRect.bottom <= toolbarRect.top,
+      isTrue,
+      reason: 'title row must sit above the toolbar',
+    );
+    // Search trigger = floating button (portrait).
+    expect(find.byKey(const Key('floating-search-button')), findsOneWidget);
     expect(find.byKey(const Key('global-search-button')), findsOneWidget);
   });
 
@@ -776,9 +788,8 @@ void main() {
     expect(size.height, greaterThanOrEqualTo(48.0));
   });
 
-  testWidgets('wide desktop: unchanged, no floating search button', (
-    tester,
-  ) async {
+  testWidgets('wide desktop: title above toolbar static, floating search '
+      'on list pane', (tester) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -790,11 +801,21 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    // Two-pane wide layout, AppBar intact, no floating overlay.
+    // Two-pane wide layout intact; header hierarchy on the list pane.
     expect(find.byType(CalendarPane), findsOneWidget);
     expect(find.byType(TaskListScreen), findsOneWidget);
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(find.byKey(const Key('floating-search-button')), findsNothing);
+    expect(find.byType(AppBar), findsNothing);
+    final title = find.byKey(const Key('destination-title'));
+    expect(title, findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
+    expect(find.text('Filter'), findsOneWidget);
+    final titleRect = tester.getRect(title);
+    final filterRect = tester.getRect(find.text('Filter'));
+    expect(titleRect.bottom <= filterRect.top, isTrue);
+    // Desktop: static rows, floating search on the list pane.
+    expect(find.byType(HideOnScrollHeader), findsNothing);
+    expect(find.byKey(const Key('mobile-toolbar')), findsNothing);
+    expect(find.byKey(const Key('floating-search-button')), findsOneWidget);
     expect(find.byKey(const Key('global-search-button')), findsOneWidget);
   });
 
@@ -950,13 +971,14 @@ void main() {
     // Exactly one Filter button in the whole screen — the list no longer
     // renders its own filter row (showFilterBar: false).
     expect(find.text('Filter'), findsOneWidget);
-    // Portrait top bar (title + search) unchanged.
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
+    // Title row above the toolbar (hierarchy), floating search present.
+    expect(find.byKey(const Key('destination-title')), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
+    expect(find.byKey(const Key('floating-search-button')), findsOneWidget);
   });
 
-  testWidgets('portrait mobile: unified toolbar hides on scroll down and '
-      'reappears on scroll up', (tester) async {
+  testWidgets('portrait mobile: title AND toolbar hide together on scroll '
+      'down and reappear on scroll up', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -968,17 +990,21 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
+    final title = find.byKey(const Key('destination-title'));
     final toolbar = find.byKey(const Key('mobile-toolbar'));
+    expect(title, findsOneWidget);
     expect(toolbar, findsOneWidget);
 
-    // Scroll down → toolbar hides.
+    // Scroll down → title AND toolbar hide together.
     await tester.drag(find.byType(ListView), const Offset(0, -400));
     await tester.pumpAndSettle();
+    expect(title, findsNothing, reason: 'title must hide on scroll down');
     expect(toolbar, findsNothing, reason: 'toolbar must hide on scroll down');
 
-    // Scroll up → toolbar reappears.
+    // Scroll up → both reappear.
     await tester.drag(find.byType(ListView), const Offset(0, 400));
     await tester.pumpAndSettle();
+    expect(title, findsOneWidget, reason: 'title must reappear on scroll up');
     expect(
       toolbar,
       findsOneWidget,
@@ -1019,8 +1045,10 @@ void main() {
     expect(find.descendant(of: toolbar, matching: floating), findsNothing);
   });
 
-  testWidgets('desktop wide: unchanged — no unified mobile toolbar, filter '
-      'row stays inside TaskListScreen', (tester) async {
+  testWidgets('desktop wide: static header hierarchy — no mobile toolbar '
+      'key, filter in DestinationBody toolbar, floating search', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2000, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1032,18 +1060,15 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    // Desktop must not use the mobile unified toolbar or scroll-hide.
+    // Desktop must not use the compact mobile toolbar key or scroll-hide.
     expect(find.byKey(const Key('mobile-toolbar')), findsNothing);
     expect(find.byType(HideOnScrollHeader), findsNothing);
-    // Filter row still rendered inside TaskListScreen (default showFilterBar).
+    // Static title row + filter toolbar on the list pane.
+    expect(find.byKey(const Key('destination-title')), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
     expect(find.text('Filter'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(TaskListScreen),
-        matching: find.text('Filter'),
-      ),
-      findsOneWidget,
-    );
+    // Floating search trigger on desktop (decision 2).
+    expect(find.byKey(const Key('floating-search-button')), findsOneWidget);
   });
 
   testWidgets('unified toolbar: filter dropdown still opens under Filtruj '

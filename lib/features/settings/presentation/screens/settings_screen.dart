@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../../shared/destination_header.dart';
 import '../../../../shared/timezone_util.dart';
 
 import '../../domain/app_settings_data.dart';
@@ -19,96 +20,102 @@ class SettingsScreen extends ConsumerWidget {
     final notifier = ref.read(appSettingsProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            l10n.settingsTheme,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<AppThemePreference>(
-            segments: [
-              ButtonSegment(
-                value: AppThemePreference.system,
-                icon: const Icon(Icons.brightness_auto),
-                label: Text(l10n.themeSystem),
-              ),
-              ButtonSegment(
-                value: AppThemePreference.light,
-                icon: const Icon(Icons.light_mode),
-                label: Text(l10n.themeLight),
-              ),
-              ButtonSegment(
-                value: AppThemePreference.dark,
-                icon: const Icon(Icons.dark_mode),
-                label: Text(l10n.themeDark),
-              ),
-            ],
-            selected: {settings.themePreference},
-            onSelectionChanged: (selection) =>
-                notifier.setThemePreference(selection.first),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.settingsLanguage,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<AppLanguage>(
-            segments: [
-              ButtonSegment(
-                value: AppLanguage.en,
-                label: Text(l10n.languageEnglish),
-              ),
-              ButtonSegment(
-                value: AppLanguage.pl,
-                label: Text(l10n.languagePolish),
-              ),
-            ],
-            selected: {settings.language},
-            onSelectionChanged: (selection) =>
-                notifier.setLanguage(selection.first),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.settingsDefaultDueTime,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.access_time),
-            label: Text(settings.defaultDueTime),
-            onPressed: () async {
-              final dueTime = ref.watch(defaultDueTimeProvider);
-              final picked = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay(
-                  hour: dueTime.hour,
-                  minute: dueTime.minute,
+      // Settings: title row only — no toolbar, no search trigger
+      // (scope: no new controls). Static in all regimes.
+      body: DestinationBody(
+        title: l10n.settings,
+        toolbar: null,
+        hideOnScroll: false,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              l10n.settingsTheme,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<AppThemePreference>(
+              segments: [
+                ButtonSegment(
+                  value: AppThemePreference.system,
+                  icon: const Icon(Icons.brightness_auto),
+                  label: Text(l10n.themeSystem),
                 ),
-              );
-              if (picked != null) {
-                await notifier.setDefaultDueTime(
-                  '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}',
+                ButtonSegment(
+                  value: AppThemePreference.light,
+                  icon: const Icon(Icons.light_mode),
+                  label: Text(l10n.themeLight),
+                ),
+                ButtonSegment(
+                  value: AppThemePreference.dark,
+                  icon: const Icon(Icons.dark_mode),
+                  label: Text(l10n.themeDark),
+                ),
+              ],
+              selected: {settings.themePreference},
+              onSelectionChanged: (selection) =>
+                  notifier.setThemePreference(selection.first),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.settingsLanguage,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<AppLanguage>(
+              segments: [
+                ButtonSegment(
+                  value: AppLanguage.en,
+                  label: Text(l10n.languageEnglish),
+                ),
+                ButtonSegment(
+                  value: AppLanguage.pl,
+                  label: Text(l10n.languagePolish),
+                ),
+              ],
+              selected: {settings.language},
+              onSelectionChanged: (selection) =>
+                  notifier.setLanguage(selection.first),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.settingsDefaultDueTime,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.access_time),
+              label: Text(settings.defaultDueTime),
+              onPressed: () async {
+                final dueTime = ref.watch(defaultDueTimeProvider);
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay(
+                    hour: dueTime.hour,
+                    minute: dueTime.minute,
+                  ),
                 );
-              }
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.settingsTimezone,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          _TimezoneSelector(
-            value: settings.timezoneName.isEmpty
-                ? tz.local.name
-                : settings.timezoneName,
-            onChanged: (name) => notifier.setTimezone(name),
-          ),
-        ],
+                if (picked != null) {
+                  await notifier.setDefaultDueTime(
+                    '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}',
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.settingsTimezone,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            _TimezoneSelector(
+              value: settings.timezoneName.isEmpty
+                  ? tz.local.name
+                  : settings.timezoneName,
+              onChanged: (name) => notifier.setTimezone(name),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -143,10 +150,9 @@ class _TimezoneSelectorState extends State<_TimezoneSelector> {
       viewLeading: const Icon(Icons.search),
       suggestionsBuilder: (context, controller) {
         final query = controller.text.trim().toLowerCase();
-        final matches = zones
-            .where((name) => name.toLowerCase().contains(query))
-            .toList()
-          ..sort(_fuzzyCompare(query));
+        final matches =
+            zones.where((name) => name.toLowerCase().contains(query)).toList()
+              ..sort(_fuzzyCompare(query));
         final shown = matches.isEmpty ? const <String>[] : matches;
         if (shown.isEmpty) {
           return [ListTile(title: Text(l10n.noTimezonesFound))];

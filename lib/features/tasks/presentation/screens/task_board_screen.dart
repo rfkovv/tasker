@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/app_shell.dart' show isCompactMode;
+import '../../../../app/app_shell.dart' show isCompactMode, isMobileLayout;
 import '../../../../l10n/app_localizations.dart';
-import '../../../../shared/hide_on_scroll_header.dart';
+import '../../../../shared/destination_header.dart';
 import '../../../settings/settings.dart' as settings_feature;
 import '../../../search/search.dart' show FloatingSearchButton;
 import '../../data/task_repository_provider.dart';
@@ -69,7 +69,9 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
   }
 }
 
-/// Wide layout: unchanged two-pane side-by-side.
+/// Wide layout: two-pane side-by-side with the unified header hierarchy
+/// on the list pane (title row + filter toolbar, static on desktop) and
+/// the floating search trigger at the pane's top-end.
 class _WideLayout extends StatelessWidget {
   const _WideLayout({required this.onOpenTask});
 
@@ -77,6 +79,7 @@ class _WideLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Row(
         children: [
@@ -102,7 +105,23 @@ class _WideLayout extends StatelessWidget {
                       ? Theme.of(context).colorScheme.secondaryContainer
                             .withValues(alpha: 0.25)
                       : null,
-                  child: TaskListScreen(onOpenTask: onOpenTask),
+                  child: Stack(
+                    children: [
+                      // Desktop: static title row + filter toolbar (no
+                      // hide-on-scroll); floating search top-end of pane.
+                      DestinationBody(
+                        title: l10n.tasks,
+                        toolbar: const TaskFilterBar(),
+                        hideOnScroll: false,
+                        child: TaskListScreen(
+                          onOpenTask: onOpenTask,
+                          showFilterBar: false,
+                          showChrome: false,
+                        ),
+                      ),
+                      const FloatingSearchButton(),
+                    ],
+                  ),
                 );
               },
             ),
@@ -169,15 +188,19 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final compact = isCompactMode(context);
+    // Portrait mobile: title + toolbar hide together on scroll.
+    // Compact: toolbar-only header still hides (unchanged compact chrome).
+    final hideOnScroll = isMobileLayout(context);
     return Scaffold(
-      body: HideOnScrollHeader(
-        // Unified mobile toolbar: Lista|Kalendarz segmented control AND
-        // Filtruj (+ active badge) in ONE row. Hides on scroll down,
-        // reappears on scroll up (shared HideOnScrollHeader).
-        header: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
+      body: Stack(
+        children: [
+          DestinationBody(
+            title: l10n.tasks,
+            showTitle: !compact,
+            hideOnScroll: hideOnScroll,
+            // Unified mobile toolbar: Lista|Kalendarz segmented control
+            // AND Filtruj (+ active badge) in ONE row.
+            toolbar: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 key: const Key('mobile-toolbar'),
@@ -202,94 +225,89 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
                 ],
               ),
             ),
-            const Divider(height: 1),
-          ],
-        ),
-        child: Column(
-          children: [
-            if (_schedulingTask != null)
-              Material(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.event,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.primary,
+            child: Column(
+              children: [
+                if (_schedulingTask != null)
+                  Material(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          l10n.tapToScheduleHint,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => _schedulingTask = null),
-                        child: Text(l10n.cancelSchedule),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: widget.showCalendar
-                        ? CalendarPane(
-                            onOpenTask: widget.onOpenTask,
-                            onTaskTap: _onTaskTap,
-                            onTapDay: _schedulingTask != null
-                                ? _onTapDay
-                                : null,
-                          )
-                        : DragTarget<Task>(
-                            onWillAcceptWithDetails: (details) =>
-                                details.data.dueDate != null,
-                            onAcceptWithDetails: (details) {
-                              final task = details.data;
-                              if (task.dueDate == null) return;
-                              unawaited(
-                                ProviderScope.containerOf(context)
-                                    .read(taskRepositoryProvider)
-                                    .update(
-                                      task.copyWith(
-                                        dueDate: null,
-                                        updatedAt: DateTime.now(),
-                                      ),
-                                    ),
-                              );
-                            },
-                            builder: (context, candidates, _) {
-                              return Container(
-                                color: candidates.isNotEmpty
-                                    ? Theme.of(context)
-                                          .colorScheme
-                                          .secondaryContainer
-                                          .withValues(alpha: 0.25)
-                                    : null,
-                                child: TaskListScreen(
-                                  onOpenTask: widget.onOpenTask,
-                                  // Filter controls live in the unified
-                                  // mobile toolbar above, not inside the list.
-                                  showFilterBar: false,
-                                ),
-                              );
-                            },
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.event,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.tapToScheduleHint,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                setState(() => _schedulingTask = null),
+                            child: Text(l10n.cancelSchedule),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  if (compact) const FloatingSearchButton(),
-                ],
-              ),
+                Expanded(
+                  child: widget.showCalendar
+                      ? CalendarPane(
+                          onOpenTask: widget.onOpenTask,
+                          onTaskTap: _onTaskTap,
+                          onTapDay: _schedulingTask != null ? _onTapDay : null,
+                        )
+                      : DragTarget<Task>(
+                          onWillAcceptWithDetails: (details) =>
+                              details.data.dueDate != null,
+                          onAcceptWithDetails: (details) {
+                            final task = details.data;
+                            if (task.dueDate == null) return;
+                            unawaited(
+                              ProviderScope.containerOf(context)
+                                  .read(taskRepositoryProvider)
+                                  .update(
+                                    task.copyWith(
+                                      dueDate: null,
+                                      updatedAt: DateTime.now(),
+                                    ),
+                                  ),
+                            );
+                          },
+                          builder: (context, candidates, _) {
+                            return Container(
+                              color: candidates.isNotEmpty
+                                  ? Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer
+                                        .withValues(alpha: 0.25)
+                                  : null,
+                              child: TaskListScreen(
+                                onOpenTask: widget.onOpenTask,
+                                // Filter controls live in the unified
+                                // toolbar above; chrome lives in
+                                // DestinationBody.
+                                showFilterBar: false,
+                                showChrome: false,
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Floating search trigger: portrait AND compact (decision 2).
+          const FloatingSearchButton(),
+        ],
       ),
     );
   }

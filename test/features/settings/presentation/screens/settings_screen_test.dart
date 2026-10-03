@@ -7,6 +7,7 @@ import 'package:taskmaster/features/settings/domain/app_settings_repository.dart
 import 'package:taskmaster/features/settings/presentation/providers/app_settings_provider.dart';
 import 'package:taskmaster/features/settings/presentation/screens/settings_screen.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
+import 'package:taskmaster/shared/hide_on_scroll_header.dart';
 import 'package:taskmaster/shared/timezone_util.dart';
 
 class _FakeSettingsRepository implements AppSettingsRepository {
@@ -75,9 +76,7 @@ class _Harness extends ConsumerWidget {
 
 Widget buildApp(AppSettingsRepository repository) {
   return ProviderScope(
-    overrides: [
-      appSettingsRepositoryProvider.overrideWithValue(repository),
-    ],
+    overrides: [appSettingsRepositoryProvider.overrideWithValue(repository)],
     child: const _Harness(),
   );
 }
@@ -86,9 +85,9 @@ void main() {
   setUpAll(initAppTimeZones);
 
   testWidgets('shows theme and language sections', (tester) async {
-    await tester.pumpWidget(buildApp(_FakeSettingsRepository(
-      const AppSettingsData(),
-    )));
+    await tester.pumpWidget(
+      buildApp(_FakeSettingsRepository(const AppSettingsData())),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
@@ -100,11 +99,12 @@ void main() {
     expect(find.text('Polish'), findsOneWidget);
   });
 
-  testWidgets('switching theme to dark applies dark theme instantly',
-      (tester) async {
-    await tester.pumpWidget(buildApp(_FakeSettingsRepository(
-      const AppSettingsData(),
-    )));
+  testWidgets('switching theme to dark applies dark theme instantly', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(_FakeSettingsRepository(const AppSettingsData())),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -121,8 +121,9 @@ void main() {
     );
   });
 
-  testWidgets('switching language to Polish translates the UI instantly',
-      (tester) async {
+  testWidgets('switching language to Polish translates the UI instantly', (
+    tester,
+  ) async {
     final repo = _FakeSettingsRepository(const AppSettingsData());
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
@@ -136,15 +137,33 @@ void main() {
     expect(repo.savedLanguages, [AppLanguage.pl]);
   });
 
-  testWidgets('Schedule settings show default due time and timezone',
-      (tester) async {
-    await tester.pumpWidget(buildApp(_FakeSettingsRepository(
-      const AppSettingsData(),
-    )));
+  testWidgets('Schedule settings show default due time and timezone', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(_FakeSettingsRepository(const AppSettingsData())),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Default due time'), findsOneWidget);
     expect(find.text('07:00'), findsOneWidget);
     expect(find.text('Time zone'), findsOneWidget);
+  });
+
+  testWidgets('portrait + desktop: title row only — no toolbar, no floating '
+      'search', (tester) async {
+    await tester.pumpWidget(
+      buildApp(_FakeSettingsRepository(const AppSettingsData())),
+    );
+    await tester.pumpAndSettle();
+
+    // Title row present, static (no scroll-hide), no controls toolbar.
+    expect(find.byKey(const Key('destination-title')), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byType(HideOnScrollHeader), findsNothing);
+    expect(find.text('Filter'), findsNothing);
+    // Settings has NO search trigger (scope e: no new controls).
+    expect(find.byKey(const Key('floating-search-button')), findsNothing);
+    expect(find.byKey(const Key('global-search-button')), findsNothing);
   });
 }
