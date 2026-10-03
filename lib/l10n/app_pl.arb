@@ -73,6 +73,11 @@
   "markDone": "Oznacz jako zrobione",
   "markTodo": "Przywróć do zrobienia",
   "delete": "Usuń",
+  "deleteTaskConfirmTitle": "Usunąć zadanie?",
+  "deleteTaskConfirmMessage": "Zadanie zostanie przeniesione do Kosza",
+  "deleteContactConfirmTitle": "Usunąć kontakt?",
+  "deleteContactConfirmMessage": "Kontakt zostanie przeniesiony do Kosza",
+  "movedToTrash": "Przeniesiono do Kosza",
   "subtasks": "Podzadania",
   "subtaskProgress": "{done}/{total}",
   "@subtaskProgress": {

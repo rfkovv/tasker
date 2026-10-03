@@ -213,6 +213,23 @@ class AppLocalizationsPl extends AppLocalizations {
   String get delete => 'Usuń';
 
   @override
+  String get deleteTaskConfirmTitle => 'Usunąć zadanie?';
+
+  @override
+  String get deleteTaskConfirmMessage =>
+      'Zadanie zostanie przeniesione do Kosza';
+
+  @override
+  String get deleteContactConfirmTitle => 'Usunąć kontakt?';
+
+  @override
+  String get deleteContactConfirmMessage =>
+      'Kontakt zostanie przeniesiony do Kosza';
+
+  @override
+  String get movedToTrash => 'Przeniesiono do Kosza';
+
+  @override
   String get subtasks => 'Podzadania';
 
   @override

@@ -73,6 +73,11 @@
   "markDone": "Mark done",
   "markTodo": "Back to to-do",
   "delete": "Delete",
+  "deleteTaskConfirmTitle": "Delete task?",
+  "deleteTaskConfirmMessage": "The task will be moved to Trash",
+  "deleteContactConfirmTitle": "Delete contact?",
+  "deleteContactConfirmMessage": "The contact will be moved to Trash",
+  "movedToTrash": "Moved to Trash",
   "subtasks": "Subtasks",
   "subtaskProgress": "{done}/{total}",
   "@subtaskProgress": {

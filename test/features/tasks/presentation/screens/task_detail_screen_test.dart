@@ -49,6 +49,7 @@ class FakeTaskRepository implements TaskRepository {
 
   final List<Task> _tasks;
   final _ChangeStream<List<Task>> _tracker;
+  final deletedIds = <String>[];
 
   @override
   Stream<List<Task>> watchAll({TaskFilter filter = TaskFilter.none}) {
@@ -103,6 +104,7 @@ class FakeTaskRepository implements TaskRepository {
 
   @override
   Future<void> delete(String id) async {
+    deletedIds.add(id);
     _tasks.removeWhere((t) => t.id == id);
     _tracker.update(List.of(_tasks));
   }
@@ -534,5 +536,46 @@ void main() {
     expect(find.text('Comment 5'), findsOneWidget);
     expect(find.text('Comment 6'), findsOneWidget);
     expect(find.text('Comment 1'), findsNothing);
+  });
+
+  testWidgets(
+      'delete task: confirm dialog → soft-delete called + SnackBar shown',
+      (tester) async {
+    await tester.pumpWidget(buildApp(taskId));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('task-delete-button')));
+    await tester.pumpAndSettle();
+
+    // Confirm dialog with trash-semantics copy (recoverable, not permanent).
+    expect(find.text('Delete task?'), findsOneWidget);
+    expect(
+      find.text('The task will be moved to Trash'),
+      findsOneWidget,
+    );
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(taskRepo.deletedIds, [taskId]);
+    expect(find.text('Moved to Trash'), findsOneWidget);
+  });
+
+  testWidgets('delete task: cancel dismisses without calling delete',
+      (tester) async {
+    await tester.pumpWidget(buildApp(taskId));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('task-delete-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(taskRepo.deletedIds, isEmpty);
+    expect(find.text('Delete task?'), findsNothing);
+    expect(find.text('My Task'), findsWidgets);
   });
 }

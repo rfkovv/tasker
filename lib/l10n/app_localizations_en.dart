@@ -212,6 +212,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get deleteTaskConfirmTitle => 'Delete task?';
+
+  @override
+  String get deleteTaskConfirmMessage => 'The task will be moved to Trash';
+
+  @override
+  String get deleteContactConfirmTitle => 'Delete contact?';
+
+  @override
+  String get deleteContactConfirmMessage =>
+      'The contact will be moved to Trash';
+
+  @override
+  String get movedToTrash => 'Moved to Trash';
+
+  @override
   String get subtasks => 'Subtasks';
 
   @override

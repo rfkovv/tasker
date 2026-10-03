@@ -494,6 +494,36 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
+  /// No description provided for @deleteTaskConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete task?'**
+  String get deleteTaskConfirmTitle;
+
+  /// No description provided for @deleteTaskConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The task will be moved to Trash'**
+  String get deleteTaskConfirmMessage;
+
+  /// No description provided for @deleteContactConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete contact?'**
+  String get deleteContactConfirmTitle;
+
+  /// No description provided for @deleteContactConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The contact will be moved to Trash'**
+  String get deleteContactConfirmMessage;
+
+  /// No description provided for @movedToTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to Trash'**
+  String get movedToTrash;
+
   /// No description provided for @subtasks.
   ///
   /// In en, this message translates to:

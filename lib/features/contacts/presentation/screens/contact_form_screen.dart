@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/app_localizations.dart';
 
+import '../../data/contact_repository_provider.dart';
 import '../../domain/contact.dart';
 import '../providers/contact_form_provider.dart';
 import '../providers/contact_list_provider.dart';
@@ -26,6 +27,34 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
 
   bool get _isNew =>
       widget.contactId == null || widget.contactId == 'new';
+
+  Future<void> _confirmDelete(WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deleteContactConfirmTitle),
+        content: Text(l10n.deleteContactConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref.read(contactRepositoryProvider).delete(widget.contactId!);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.movedToTrash)),
+    );
+    Navigator.maybePop(context);
+  }
 
   @override
   void initState() {
@@ -93,6 +122,13 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
+                  if (!_isNew)
+                    IconButton(
+                      key: const ValueKey('contact-delete-button'),
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: l10n.delete,
+                      onPressed: () => _confirmDelete(ref),
+                    ),
                   const Spacer(),
                   FilledButton(
                     onPressed: () async {
