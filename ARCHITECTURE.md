@@ -47,7 +47,9 @@ Dev environment: Linux.
   otwarcie wyniku zamyka wyszukiwanie i nawiguje standardowo
   (bez równoległych tras/overlay-i)
 - Compact mode (mobile): aktywowany WYŁĄCZNIE przez rozmiar okna
-  (width < 600 AND height < kCompactHeightLimit = 600 logical px) —
+  (mobile branch active: width < kDesktopBreakpoint = 1000 — ten sam
+  warunek co bottom NavigationBar — AND height < kCompactHeightLimit
+  = 600 logical px) —
   nigdy przez Orientation/OrientationBuilder. W compact mode:
   a) pasek tytułu (AppBar) ukryty na ekranach list
   b) globalny search trigger = pływający okrągły przycisk

@@ -3,36 +3,18 @@
 PROJECT: TaskMaster (Flutter menedżer zadań)
 ARCHITECTURE: See ARCHITECTURE.md — follow it strictly, no deviations without approval.
 
-CURRENT PHASE: Stage 7 — Android build
+CURRENT PHASE: 7.5 — COMPLETE (compact landscape mode, floating search button,
+trigger-condition fix). All layers committed; analyze clean, tests green (207).
 
-STAGE 7 SCOPE (do NOT exceed):
-- Konfiguracja platformy android/ w projekcie Flutter (jeśli
-  brak: flutter create --platforms=android .)
-- Ścieżka bazy danych: getApplicationDocumentsDirectory()
-  (zgodnie z ARCHITECTURE.md — drift path strategy per platform)
-- Release build: flutter build apk --release (debug build do dev na
-  telefonie: flutter run)
-- Signature config: debug keystore wystarczy na start (release
-  signing — osobny krok przy publikacji; SKONFIGUROWAĆ ale bez
-  realnego keystore produkcyjnego)
-- Ikona aplikacji + splash (flutter_launcher_icons — podstawowe)
-- Test na urządzeniu/emulatorze: CRUD, persystencja, drag & drop
-  kalendarza (dotyk = long-press drag), klawiatura ekranowa
-  nie zasłania Save (resizeToAvoidBottomInset)
-
-OUT OF SCOPE: Play Store publishing, iOS, notyfikacje, sync
-
-IMPLEMENTATION ORDER:
-1. flutter create --platforms=android (uważać: NIE nadpisać lib/)
-2. Drift database path dla Android (getApplicationDocumentsDirectory)
-3. APK release build + instalacja (adb install)
-4. Test dotykowy DnD + klawiatura
-5. README: sekcja Android build
-
-COMPLETION CRITERIA:
-- flutter run -d <device> działa z Linuksa (USB debug lub emulator)
-- Release APK instaluje się i działa; zadania persystują;
-  drag & drop działa na dotyk
+CONTEXT: Stage 7.5 delivered size-triggered compact mode for mobile landscape:
+no top bar on list screens, floating circular search button (top-end, SafeArea,
+≥48 dp, hides while the shared search overlay is open), compact NavigationBar
+(labels hidden, ~56 dp), calendar header reserves space so the view switcher is
+never covered. Compact condition = mobile layout branch (width <
+kDesktopBreakpoint = 1000 — same branch as bottom NavigationBar) AND height <
+kCompactHeightLimit = 600. Reactive to window-size changes; never
+Orientation/OrientationBuilder. Next stage not yet specified — do not start
+work beyond the current brief.
 
 RULES:
 1. Feature-first structure; mirror conventions of features/tasks/ exactly
@@ -49,12 +31,3 @@ RULES:
    integration points
 8. NO hardcoded UI strings — every user-visible text goes through
    AppLocalizations (.arb, PL+EN), also for all future screens
-
-WORKFLOW:
-1. ContactsDao in local_db (schema tables already exist)
-2. features/contacts/domain
-3. features/contacts/data + mapper
-4. Repository tests (in-memory drift)
-5. features/contacts/presentation + linking UI in task form
-6. Router: '/contacts', '/contacts/:id'
-
