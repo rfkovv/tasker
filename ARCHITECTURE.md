@@ -50,9 +50,16 @@ Dev environment: Linux.
   (width < 600 AND height < kCompactHeightLimit = 600 logical px) —
   nigdy przez Orientation/OrientationBuilder. W compact mode:
   a) pasek tytułu (AppBar) ukryty na ekranach list
-  b) globalny search trigger przeniesiony do wiersza segmented control
-     (trailing IconButton) — ta sama instancja overlay, tylko zmiana
-     lokalizacji triggera
+  b) globalny search trigger = pływający okrągły przycisk
+     (FloatingSearchButton) w prawym górnym rogu obszaru treści:
+     wewnątrz SafeArea (nigdy pod system bars), margines 12 dp,
+     touch target ≥ 48 dp; nigdy nie zasłania przełącznika widoku
+     kalendarza (week/month/quarter — nagłówek kalendarza rezerwuje
+     miejsce w compact); nie koliduje z warunkowym Add FAB (ten
+     zostaje w dolnym prawym rogu); na widoku listy unosi się nad
+     treścią (standardowy overlay); otwiera TĘ SAMĄ wspólną nakładkę
+     wyszukiwania (pojedynczy entry point, pojedynczy overlay);
+     ukryty gdy nakładka wyszukiwania jest otwarta
   c) NavigationBar: wysokość ~56 dp, etykiety ukryte (ikony);
      touch targets ≥ 48 dp
   d) edge-to-edge: content, footer i NavigationBar respektują

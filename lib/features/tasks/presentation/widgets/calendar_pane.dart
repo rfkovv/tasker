@@ -49,8 +49,7 @@ class CalendarPane extends ConsumerWidget {
       children: [
         _CalendarHeader(
           view: view,
-          onPrevious: () =>
-              ref.read(calendarViewProvider.notifier).previous(),
+          onPrevious: () => ref.read(calendarViewProvider.notifier).previous(),
           onNext: () => ref.read(calendarViewProvider.notifier).next(),
           onToday: () => ref.read(calendarViewProvider.notifier).goToday(),
           onModeChanged: (mode) =>
@@ -60,38 +59,35 @@ class CalendarPane extends ConsumerWidget {
         Expanded(
           child: switch (view.mode) {
             CalendarViewMode.month => _MonthGrid(
-                month: view.anchor,
-                byDay: byDay,
-                zone: zone,
-                today: today,
-                onDropTask: (day, task) =>
-                    _dropOnDay(ref, day, task),
-                onOpenTask: (id) => onOpenTask?.call(id),
-                onTaskTap: onTaskTap,
-                onTapDay: onTapDay,
-              ),
+              month: view.anchor,
+              byDay: byDay,
+              zone: zone,
+              today: today,
+              onDropTask: (day, task) => _dropOnDay(ref, day, task),
+              onOpenTask: (id) => onOpenTask?.call(id),
+              onTaskTap: onTaskTap,
+              onTapDay: onTapDay,
+            ),
             CalendarViewMode.week => _WeekGrid(
-                day: view.anchor,
-                byDay: byDay,
-                zone: zone,
-                today: today,
-                onDropTask: (day, task) =>
-                    _dropOnDay(ref, day, task),
-                onOpenTask: (id) => onOpenTask?.call(id),
-                onTaskTap: onTaskTap,
-                onTapDay: onTapDay,
-              ),
+              day: view.anchor,
+              byDay: byDay,
+              zone: zone,
+              today: today,
+              onDropTask: (day, task) => _dropOnDay(ref, day, task),
+              onOpenTask: (id) => onOpenTask?.call(id),
+              onTaskTap: onTaskTap,
+              onTapDay: onTapDay,
+            ),
             CalendarViewMode.quarter => _QuarterGrid(
-                anchor: view.anchor,
-                byDay: byDay,
-                zone: zone,
-                today: today,
-                onDropTask: (day, task) =>
-                    _dropOnDay(ref, day, task),
-                onOpenTask: (id) => onOpenTask?.call(id),
-                onTaskTap: onTaskTap,
-                onTapDay: onTapDay,
-              ),
+              anchor: view.anchor,
+              byDay: byDay,
+              zone: zone,
+              today: today,
+              onDropTask: (day, task) => _dropOnDay(ref, day, task),
+              onOpenTask: (id) => onOpenTask?.call(id),
+              onTaskTap: onTaskTap,
+              onTapDay: onTapDay,
+            ),
           },
         ),
       ],
@@ -103,8 +99,9 @@ class CalendarPane extends ConsumerWidget {
   void _dropOnDay(WidgetRef ref, DateTime day, Task task) {
     final zone = ref.read(settings_feature.selectedTimeZoneProvider);
     final dueTime = ref.read(settings_feature.defaultDueTimeProvider);
-    final currentDay =
-        task.dueDate == null ? null : localDay(task.dueDate!, zone);
+    final currentDay = task.dueDate == null
+        ? null
+        : localDay(task.dueDate!, zone);
     if (currentDay == day) return;
     final newDue = movedDueDate(
       task: task,
@@ -113,9 +110,9 @@ class CalendarPane extends ConsumerWidget {
       defaultDueTime: DueTime(hour: dueTime.hour, minute: dueTime.minute),
     );
     if (task.dueDate == newDue) return;
-    ref.read(taskRepositoryProvider).update(
-          task.copyWith(dueDate: newDue, updatedAt: DateTime.now()),
-        );
+    ref
+        .read(taskRepositoryProvider)
+        .update(task.copyWith(dueDate: newDue, updatedAt: DateTime.now()));
   }
 }
 
@@ -163,8 +160,11 @@ class _CalendarHeader extends StatelessWidget {
       CalendarViewMode.quarter => _quarterLabel(context, view.anchor),
     };
 
+    // In compact mode the floating search button occupies the top-end of the
+    // content area; reserve trailing space so the view switcher (month/week/
+    // quarter) is never covered (design decision 2b hard constraint).
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.fromLTRB(12, 8, compact ? 68 : 12, 8),
       child: Row(
         children: [
           IconButton(
@@ -173,10 +173,7 @@ class _CalendarHeader extends StatelessWidget {
             onPressed: onPrevious,
           ),
           Text(label, style: Theme.of(context).textTheme.titleMedium),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: onNext,
-          ),
+          IconButton(icon: const Icon(Icons.chevron_right), onPressed: onNext),
           if (!compact) ...[
             const SizedBox(width: 8),
             TextButton(onPressed: onToday, child: Text(l10n.today)),
@@ -187,21 +184,27 @@ class _CalendarHeader extends StatelessWidget {
             segments: [
               ButtonSegment(
                 value: CalendarViewMode.month,
-                label: Text(compact
-                    ? l10n.calendarMonth.substring(0, 1)
-                    : l10n.calendarMonth),
+                label: Text(
+                  compact
+                      ? l10n.calendarMonth.substring(0, 1)
+                      : l10n.calendarMonth,
+                ),
               ),
               ButtonSegment(
                 value: CalendarViewMode.week,
-                label: Text(compact
-                    ? l10n.calendarWeek.substring(0, 1)
-                    : l10n.calendarWeek),
+                label: Text(
+                  compact
+                      ? l10n.calendarWeek.substring(0, 1)
+                      : l10n.calendarWeek,
+                ),
               ),
               ButtonSegment(
                 value: CalendarViewMode.quarter,
-                label: Text(compact
-                    ? l10n.calendarQuarter.substring(0, 1)
-                    : l10n.calendarQuarter),
+                label: Text(
+                  compact
+                      ? l10n.calendarQuarter.substring(0, 1)
+                      : l10n.calendarQuarter,
+                ),
               ),
             ],
             selected: {view.mode},
@@ -256,9 +259,8 @@ class _WeekdayHeaderRow extends StatelessWidget {
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: Theme.of(context).colorScheme.outline),
               ),
             ),
           ),
@@ -308,12 +310,7 @@ class _MonthGrid extends StatelessWidget {
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: [
-          const _WeekdayHeaderRow(),
-          ...rows,
-        ],
-      ),
+      child: Column(children: [const _WeekdayHeaderRow(), ...rows]),
     );
   }
 
@@ -385,13 +382,11 @@ class _WeekGrid extends StatelessWidget {
                       onTapTask: onTaskTap != null
                           ? (id) {
                               final tasks = byDay[day] ?? const <Task>[];
-                              final task =
-                                  tasks.firstWhere((t) => t.id == id);
+                              final task = tasks.firstWhere((t) => t.id == id);
                               onTaskTap!(task);
                             }
                           : onOpenTask,
-                      onTapDay:
-                          onTapDay != null ? () => onTapDay!(day) : null,
+                      onTapDay: onTapDay != null ? () => onTapDay!(day) : null,
                     ),
                   ),
               ],
@@ -438,9 +433,8 @@ class _QuarterGrid extends StatelessWidget {
                 children: [
                   Text(
                     _shortMonth(context, month.month),
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: Theme.of(context).textTheme.labelMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const _WeekdayHeaderRow(),
                   ..._rows(month),
@@ -478,8 +472,7 @@ class _QuarterGrid extends StatelessWidget {
                             onTaskTap!(task);
                           }
                         : onOpenTask,
-                    onTapDay:
-                        onTapDay != null ? () => onTapDay!(day) : null,
+                    onTapDay: onTapDay != null ? () => onTapDay!(day) : null,
                   ),
                 ),
             ],

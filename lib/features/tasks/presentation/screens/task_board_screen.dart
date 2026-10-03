@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
 import '../../../settings/settings.dart' as settings_feature;
-import '../../../search/search.dart' show GlobalSearchButton;
+import '../../../search/search.dart' show FloatingSearchButton;
 import '../../data/task_repository_provider.dart';
 import '../../domain/scheduling.dart';
 import '../../domain/task.dart';
@@ -90,20 +90,15 @@ class _WideLayout extends StatelessWidget {
                   ProviderScope.containerOf(context)
                       .read(taskRepositoryProvider)
                       .update(
-                        task.copyWith(
-                          dueDate: null,
-                          updatedAt: DateTime.now(),
-                        ),
+                        task.copyWith(dueDate: null, updatedAt: DateTime.now()),
                       ),
                 );
               },
               builder: (context, candidates, _) {
                 return Container(
                   color: candidates.isNotEmpty
-                      ? Theme.of(context)
-                          .colorScheme
-                          .secondaryContainer
-                          .withValues(alpha: 0.25)
+                      ? Theme.of(context).colorScheme.secondaryContainer
+                            .withValues(alpha: 0.25)
                       : null,
                   child: TaskListScreen(onOpenTask: onOpenTask),
                 );
@@ -111,10 +106,7 @@ class _WideLayout extends StatelessWidget {
             ),
           ),
           const VerticalDivider(width: 1),
-          Expanded(
-            flex: 4,
-            child: CalendarPane(onOpenTask: onOpenTask),
-          ),
+          Expanded(flex: 4, child: CalendarPane(onOpenTask: onOpenTask)),
         ],
       ),
     );
@@ -164,9 +156,9 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
     );
     if (task.dueDate == newDue) return;
     unawaited(
-      container.read(taskRepositoryProvider).update(
-            task.copyWith(dueDate: newDue, updatedAt: DateTime.now()),
-          ),
+      container
+          .read(taskRepositoryProvider)
+          .update(task.copyWith(dueDate: newDue, updatedAt: DateTime.now())),
     );
     setState(() => _schedulingTask = null);
   }
@@ -186,24 +178,14 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
                   child: SegmentedButton<bool>(
                     showSelectedIcon: false,
                     segments: [
-                      ButtonSegment(
-                        value: false,
-                        label: Text(l10n.tabList),
-                      ),
-                      ButtonSegment(
-                        value: true,
-                        label: Text(l10n.tabCalendar),
-                      ),
+                      ButtonSegment(value: false, label: Text(l10n.tabList)),
+                      ButtonSegment(value: true, label: Text(l10n.tabCalendar)),
                     ],
                     selected: {widget.showCalendar},
                     onSelectionChanged: (selection) =>
                         widget.onToggleView(selection.first),
                   ),
                 ),
-                if (compact) ...[
-                  const SizedBox(width: 8),
-                  const GlobalSearchButton(),
-                ],
               ],
             ),
           ),
@@ -211,13 +193,17 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
             Material(
               color: Theme.of(context).colorScheme.primaryContainer,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
-                    Icon(Icons.event,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.event,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -226,8 +212,7 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () =>
-                          setState(() => _schedulingTask = null),
+                      onPressed: () => setState(() => _schedulingTask = null),
                       child: Text(l10n.cancelSchedule),
                     ),
                   ],
@@ -236,41 +221,50 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
             ),
           const Divider(height: 1),
           Expanded(
-            child: widget.showCalendar
-                ? CalendarPane(
-                    onOpenTask: widget.onOpenTask,
-                    onTaskTap: _onTaskTap,
-                    onTapDay: _schedulingTask != null ? _onTapDay : null,
-                  )
-                : DragTarget<Task>(
-                    onWillAcceptWithDetails: (details) =>
-                        details.data.dueDate != null,
-                    onAcceptWithDetails: (details) {
-                      final task = details.data;
-                      if (task.dueDate == null) return;
-                      unawaited(
-                        ProviderScope.containerOf(context)
-                            .read(taskRepositoryProvider)
-                            .update(
-                              task.copyWith(
-                                dueDate: null,
-                                updatedAt: DateTime.now(),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: widget.showCalendar
+                      ? CalendarPane(
+                          onOpenTask: widget.onOpenTask,
+                          onTaskTap: _onTaskTap,
+                          onTapDay: _schedulingTask != null ? _onTapDay : null,
+                        )
+                      : DragTarget<Task>(
+                          onWillAcceptWithDetails: (details) =>
+                              details.data.dueDate != null,
+                          onAcceptWithDetails: (details) {
+                            final task = details.data;
+                            if (task.dueDate == null) return;
+                            unawaited(
+                              ProviderScope.containerOf(context)
+                                  .read(taskRepositoryProvider)
+                                  .update(
+                                    task.copyWith(
+                                      dueDate: null,
+                                      updatedAt: DateTime.now(),
+                                    ),
+                                  ),
+                            );
+                          },
+                          builder: (context, candidates, _) {
+                            return Container(
+                              color: candidates.isNotEmpty
+                                  ? Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer
+                                        .withValues(alpha: 0.25)
+                                  : null,
+                              child: TaskListScreen(
+                                onOpenTask: widget.onOpenTask,
                               ),
-                            ),
-                      );
-                    },
-                    builder: (context, candidates, _) {
-                      return Container(
-                        color: candidates.isNotEmpty
-                            ? Theme.of(context)
-                                .colorScheme
-                                .secondaryContainer
-                                .withValues(alpha: 0.25)
-                            : null,
-                        child: TaskListScreen(onOpenTask: widget.onOpenTask),
-                      );
-                    },
-                  ),
+                            );
+                          },
+                        ),
+                ),
+                if (compact) const FloatingSearchButton(),
+              ],
+            ),
           ),
         ],
       ),

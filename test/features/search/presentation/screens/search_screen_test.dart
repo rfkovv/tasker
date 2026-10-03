@@ -522,4 +522,68 @@ void main() {
     expect(find.byType(SearchScreen), findsNothing);
     expect(find.byKey(const Key('global-search-button')), findsOneWidget);
   });
+
+  testWidgets('compact: floating search button opens the shared overlay and a '
+      'result navigates identically', (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    openedTask = null;
+    await tester.pumpWidget(buildApp(
+      SearchTaskRepository([buildTask('42', 'Fix bugs')]),
+      SearchContactRepository([]),
+      initialLocation: '/',
+    ));
+    await tester.pumpAndSettle();
+
+    final floating = find.byKey(const Key('floating-search-button'));
+    expect(floating, findsOneWidget);
+
+    await tester.tap(floating);
+    await tester.pumpAndSettle();
+
+    // Same shared overlay as every other entry point.
+    expect(find.byType(SearchScreen), findsOneWidget);
+    expect(find.byKey(const Key('search-back-button')), findsOneWidget);
+
+    await search(tester, 'fix');
+    await tester.tap(find.text('Fix bugs'));
+    await tester.pumpAndSettle();
+
+    expect(openedTask, '42');
+    expect(find.text('task detail'), findsOneWidget);
+    expect(find.byType(SearchScreen), findsNothing);
+  });
+
+  testWidgets('compact: floating search button hides while the search '
+      'overlay is open and returns after back', (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp(
+      SearchTaskRepository([]),
+      SearchContactRepository([]),
+      initialLocation: '/',
+    ));
+    await tester.pumpAndSettle();
+
+    final floating = find.byKey(const Key('floating-search-button'));
+    expect(floating, findsOneWidget);
+
+    await tester.tap(floating);
+    await tester.pumpAndSettle();
+    expect(find.byType(SearchScreen), findsOneWidget);
+    // Hidden while the overlay owns the screen.
+    expect(floating, findsNothing);
+
+    await tester.tap(find.byKey(const Key('search-back-button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SearchScreen), findsNothing);
+    // Visible again after the overlay closes.
+    expect(floating, findsOneWidget);
+  });
 }

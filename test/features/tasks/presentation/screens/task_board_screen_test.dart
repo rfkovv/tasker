@@ -661,8 +661,27 @@ void main() {
 
   // --- Compact mode tests (size-based, never orientation-based) ---
 
-  testWidgets('compact mode: search trigger appears in segmented row',
-      (tester) async {
+  testWidgets('narrow-portrait: not compact, AppBar visible, no floating '
+      'search button', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byKey(const Key('floating-search-button')), findsNothing);
+    // Non-compact keeps the search trigger in the AppBar title.
+    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
+  });
+
+  testWidgets('narrow-low-height: compact, AppBar absent, floating search '
+      'button present', (tester) async {
     tester.view.physicalSize = const Size(500, 400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -674,10 +693,51 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    // Search icon present (in the segmented row, not in an AppBar).
-    expect(find.byIcon(Icons.search), findsOneWidget);
-    // Segmented control present.
+    expect(find.byType(AppBar), findsNothing);
+    final floating = find.byKey(const Key('floating-search-button'));
+    expect(floating, findsOneWidget);
+    // Same shared trigger widget inside the floating button.
+    expect(
+      find.descendant(
+        of: floating,
+        matching: find.byKey(const Key('global-search-button')),
+      ),
+      findsOneWidget,
+    );
+    // Segmented control present, search NOT inside it anymore.
     expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SegmentedButton<bool>),
+        matching: find.byIcon(Icons.search),
+      ),
+      findsNothing,
+    );
+    // Touch target ≥ 48 dp.
+    final size = tester.getSize(floating);
+    expect(size.width, greaterThanOrEqualTo(48.0));
+    expect(size.height, greaterThanOrEqualTo(48.0));
+  });
+
+  testWidgets('wide desktop: unchanged, no floating search button',
+      (tester) async {
+    tester.view.physicalSize = const Size(2000, 1100);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      buildTask(id: '1', title: 'My Task'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    // Two-pane wide layout, AppBar intact, no floating overlay.
+    expect(find.byType(CalendarPane), findsOneWidget);
+    expect(find.byType(TaskListScreen), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byKey(const Key('floating-search-button')), findsNothing);
+    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
   });
 
   testWidgets('compact mode: calendar pane still renders (invariant)',
@@ -697,14 +757,16 @@ void main() {
 
     // Calendar pane renders even with zero tasks (invariant).
     expect(find.byType(CalendarPane), findsOneWidget);
-    expect(find.byWidgetPredicate(
-            (w) => w.key?.toString().contains('day-cell') ?? false),
-        findsNWidgets(42));
+    expect(
+      find.byWidgetPredicate(
+          (w) => w.key?.toString().contains('day-cell') ?? false),
+      findsNWidgets(42),
+    );
   });
 
-  testWidgets('not-compact narrow (tall): no search in segmented row',
-      (tester) async {
-    tester.view.physicalSize = const Size(500, 800);
+  testWidgets('compact: floating search button never overlaps calendar view '
+      'switcher', (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -715,8 +777,46 @@ void main() {
     await tester.pumpWidget(buildApp(repo));
     await tester.pumpAndSettle();
 
-    // Height 800 >= 600 → not compact → no search icon in segmented row.
-    // (TaskListScreen's AppBar has one, but that's non-compact behavior.)
-    expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    final searchRect =
+        tester.getRect(find.byKey(const Key('floating-search-button')));
+    final switcherRect = tester.getRect(
+      find.byType(SegmentedButton<CalendarViewMode>),
+    );
+    final overlap = searchRect.intersect(switcherRect);
+    expect(overlap.width <= 0 || overlap.height <= 0, isTrue,
+        reason: 'floating search ($searchRect) must not cover the calendar '
+            'view switcher ($switcherRect)');
+  });
+
+  testWidgets('compact: floating search button does not collide with '
+      'Add FAB', (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repo = CapturingTaskRepository([
+      for (var i = 0; i < 30; i++) buildTask(id: '$i', title: 'Task $i'),
+    ]);
+    await tester.pumpWidget(buildApp(repo));
+    await tester.pumpAndSettle();
+
+    final searchRect =
+        tester.getRect(find.byKey(const Key('floating-search-button')));
+    final fab = find.byType(FloatingActionButton);
+    final fabWrapper = find.ancestor(
+      of: fab,
+      matching: find.byType(AnimatedOpacity),
+    );
+    final opacity = tester.widget<AnimatedOpacity>(fabWrapper).opacity;
+    expect(opacity, 1); // list overflows → FAB visible
+    final fabRect = tester.getRect(fab);
+    final overlap = searchRect.intersect(fabRect);
+    expect(overlap.width <= 0 || overlap.height <= 0, isTrue,
+        reason: 'floating search ($searchRect) must not collide with the '
+            'Add FAB ($fabRect)');
   });
 }

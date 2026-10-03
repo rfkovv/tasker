@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/app_shell.dart' show isCompactMode;
 import '../../../../l10n/app_localizations.dart';
-import '../../../search/search.dart' show GlobalSearchButton;
+import '../../../search/search.dart'
+    show FloatingSearchButton, GlobalSearchButton;
 
 import '../../domain/contact.dart';
 import '../providers/contact_list_provider.dart';
@@ -79,113 +80,109 @@ class _ContactListScreenState extends ConsumerState<ContactListScreen> {
                     setState(() => _filterInitial = initial),
               ),
               const Divider(height: 1),
-          Expanded(
-            child: contactsAsync.when(
-              data: (all) {
-                final contacts = _filteredContacts(all);
-                return Stack(
-                  children: [
-                    Positioned.fill(
-                      child: NotificationListener<ScrollMetricsNotification>(
-                        onNotification: (notification) {
-                          final scrollable =
-                              notification.metrics.maxScrollExtent > 0;
-                          if (scrollable != _showFab && mounted) {
-                            setState(() => _showFab = scrollable);
-                          }
-                          return false;
-                        },
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: contacts.isEmpty ? 2 : contacts.length + 1,
-                          itemBuilder: (context, index) {
-                            if (contacts.isEmpty) {
-                              if (index == 0) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(32),
-                                  child: _EmptyState(),
-                                );
-                              }
-                              return _FooterTile(
-                                onAddContact: _handleAddContact,
-                              );
-                            }
-                            if (index == contacts.length) {
-                              return _FooterTile(
-                                onAddContact: _handleAddContact,
-                              );
-                            }
-                            final contact = contacts[index];
-                            final expanded = _expandedIds.contains(contact.id);
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                ContactTile(
-                                  contact: contact,
-                                  expanded: expanded,
-                                  onTap: () => _toggleExpanded(contact.id),
-                                  onEdit: () => widget.onOpenContact
-                                      ?.call(contact.id),
-                                ),
-                                if (expanded)
-                                  ContactExpansion(
-                                    contact: contact,
-                                    onSeeAllTasks: () => context.go(
-                                      '/?contact=${contact.id}',
-                                    ),
-                                    onOpenTask: (taskId) => context.push(
-                                      '/tasks/$taskId',
-                                    ),
+              Expanded(
+                child: contactsAsync.when(
+                  data: (all) {
+                    final contacts = _filteredContacts(all);
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child:
+                              NotificationListener<ScrollMetricsNotification>(
+                                onNotification: (notification) {
+                                  final scrollable =
+                                      notification.metrics.maxScrollExtent > 0;
+                                  if (scrollable != _showFab && mounted) {
+                                    setState(() => _showFab = scrollable);
+                                  }
+                                  return false;
+                                },
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
                                   ),
-                              ],
-                            );
-                          },
+                                  itemCount: contacts.isEmpty
+                                      ? 2
+                                      : contacts.length + 1,
+                                  itemBuilder: (context, index) {
+                                    if (contacts.isEmpty) {
+                                      if (index == 0) {
+                                        return const Padding(
+                                          padding: EdgeInsets.all(32),
+                                          child: _EmptyState(),
+                                        );
+                                      }
+                                      return _FooterTile(
+                                        onAddContact: _handleAddContact,
+                                      );
+                                    }
+                                    if (index == contacts.length) {
+                                      return _FooterTile(
+                                        onAddContact: _handleAddContact,
+                                      );
+                                    }
+                                    final contact = contacts[index];
+                                    final expanded = _expandedIds.contains(
+                                      contact.id,
+                                    );
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        ContactTile(
+                                          contact: contact,
+                                          expanded: expanded,
+                                          onTap: () =>
+                                              _toggleExpanded(contact.id),
+                                          onEdit: () => widget.onOpenContact
+                                              ?.call(contact.id),
+                                        ),
+                                        if (expanded)
+                                          ContactExpansion(
+                                            contact: contact,
+                                            onSeeAllTasks: () => context.go(
+                                              '/?contact=${contact.id}',
+                                            ),
+                                            onOpenTask: (taskId) =>
+                                                context.push('/tasks/$taskId'),
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
                         ),
-                      ),
-                    ),
-                    if (contacts.isNotEmpty)
-                      Positioned(
-                        right: 16,
-                        bottom: 16,
-                        child: AnimatedOpacity(
-                          opacity: _showFab ? 1 : 0,
-                          duration: const Duration(milliseconds: 150),
-                          child: FloatingActionButton.small(
-                            onPressed: _showFab ? _handleAddContact : null,
-                            child: const Icon(Icons.person_add),
+                        if (contacts.isNotEmpty)
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: AnimatedOpacity(
+                              opacity: _showFab ? 1 : 0,
+                              duration: const Duration(milliseconds: 150),
+                              child: FloatingActionButton.small(
+                                onPressed: _showFab ? _handleAddContact : null,
+                                child: const Icon(Icons.person_add),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Text(
-                  AppLocalizations.of(context).errorWithValue(e.toString()),
+                      ],
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(
+                    child: Text(
+                      AppLocalizations.of(context).errorWithValue(e.toString()),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
+          if (compact) const FloatingSearchButton(),
         ],
       ),
-      if (compact)
-        Positioned(
-          top: 8,
-          right: 8,
-          child: Material(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.8),
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: const GlobalSearchButton(),
-          ),
-        ),
-    ],
-  ),
-);
+    );
   }
 }
 
@@ -203,16 +200,17 @@ class _ContactFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final initials = contacts
-        .map((contact) {
-          final name = contact.name.trim();
-          if (name.isEmpty) return null;
-          return name[0].toUpperCase();
-        })
-        .whereType<String>()
-        .toSet()
-        .toList()
-      ..sort();
+    final initials =
+        contacts
+            .map((contact) {
+              final name = contact.name.trim();
+              if (name.isEmpty) return null;
+              return name[0].toUpperCase();
+            })
+            .whereType<String>()
+            .toSet()
+            .toList()
+          ..sort();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -258,18 +256,12 @@ Future<void> _openContactFilterMenu(
   final items = <PopupMenuEntry<Object>>[
     PopupMenuItem<Object>(
       value: const _ContactFilterAll(),
-      child: _MenuValueRow(
-        selected: current == null,
-        label: l10n.filterAll,
-      ),
+      child: _MenuValueRow(selected: current == null, label: l10n.filterAll),
     ),
     for (final letter in initials)
       PopupMenuItem<Object>(
         value: letter,
-        child: _MenuValueRow(
-          selected: current == letter,
-          label: letter,
-        ),
+        child: _MenuValueRow(selected: current == letter, label: letter),
       ),
   ];
 
@@ -280,10 +272,7 @@ Future<void> _openContactFilterMenu(
     position: RelativeRect.fromRect(
       Rect.fromPoints(
         box.localToGlobal(Offset.zero, ancestor: overlay),
-        box.localToGlobal(
-          box.size.bottomRight(Offset.zero),
-          ancestor: overlay,
-        ),
+        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
       ),
       Offset.zero & overlay.size,
     ),
@@ -370,9 +359,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             AppLocalizations.of(context).noContactsHint,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: Theme.of(context).colorScheme.outline),
           ),
         ],
       ),

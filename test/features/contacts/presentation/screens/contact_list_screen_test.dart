@@ -254,4 +254,37 @@ void main() {
     expect(find.text('Bob'), findsOneWidget);
     expect(find.widgetWithText(Chip, 'A'), findsNothing);
   });
+
+  testWidgets('compact mode: AppBar absent, floating search button present',
+      (tester) async {
+    tester.view.physicalSize = const Size(500, 400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildContact(id: '1', name: 'Alice'),
+    ]));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byKey(const Key('floating-search-button')), findsOneWidget);
+    expect(find.byKey(const Key('global-search-button')), findsOneWidget);
+  });
+
+  testWidgets('portrait: AppBar kept, no floating search button',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp([
+      buildContact(id: '1', name: 'Alice'),
+    ]));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byKey(const Key('floating-search-button')), findsNothing);
+  });
 }
