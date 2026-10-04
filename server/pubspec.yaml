@@ -1,0 +1,12 @@
+name: taskmaster_sync_server
+description: Dumb append-only sync log server for TaskMaster (Stage 8c).
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+# Zero third-party dependencies — dart:io only. See README for rationale.
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0

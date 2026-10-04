@@ -6,6 +6,7 @@ analyzer:
     - android/**
     - windows/**
     - linux/**
+    - server/**
     - "**/*.g.dart"
     - "**/*.freezed.dart"
 
