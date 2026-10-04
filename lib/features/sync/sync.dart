@@ -1,3 +1,4 @@
+export 'data/http_sync_transport.dart';
 export 'data/in_memory_sync_transport.dart';
 export 'data/sync_coordinator.dart';
 export 'data/sync_pull_engine_impl.dart';
