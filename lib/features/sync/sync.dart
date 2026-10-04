@@ -1,8 +1,12 @@
 export 'data/in_memory_sync_transport.dart';
+export 'data/sync_coordinator.dart';
 export 'data/sync_pull_engine_impl.dart';
 export 'data/sync_push_engine_impl.dart';
 export 'data/sync_row_serializer.dart';
+export 'data/sync_service_provider.dart';
+export 'data/sync_transport_provider.dart';
 export 'domain/sync_event.dart';
 export 'domain/sync_pull_engine.dart';
 export 'domain/sync_push_engine.dart';
+export 'domain/sync_state.dart';
 export 'domain/sync_transport.dart';

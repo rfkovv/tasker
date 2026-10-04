@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app_router.dart';
 import 'features/settings/domain/app_settings_data.dart';
 import 'features/settings/presentation/providers/app_settings_provider.dart';
+import 'features/sync/sync.dart';
 import 'l10n/app_localizations.dart';
 import 'shared/timezone_util.dart';
 
@@ -17,6 +18,11 @@ Future<void> main() async {
   } catch (_) {
     // Fall back to defaults when settings cannot be read.
   }
+
+  // Sync lifecycle (8b layer 4): outbox debounce + startup session.
+  // Background only — the app is fully functional offline; sync never
+  // blocks startup or UI. Transport is the in-process fake until 8c.
+  container.read(syncServiceProvider.notifier).start();
 
   runApp(
     UncontrolledProviderScope(

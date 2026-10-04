@@ -19,6 +19,9 @@ class InMemorySyncTransport implements SyncTransport {
   /// Number of upcoming [pullSince] calls that should fail.
   int failNextPullCalls = 0;
 
+  /// How many times [pullSince] was invoked (tests / diagnostics).
+  int pullCallCount = 0;
+
   /// Every [pushBatch] invocation, including ones that failed.
   final List<List<SyncEvent>> attemptedBatches = [];
 
@@ -52,6 +55,7 @@ class InMemorySyncTransport implements SyncTransport {
 
   @override
   Future<SyncPullResponse> pullSince(String? cursor) async {
+    pullCallCount++;
     if (failNextPullCalls > 0) {
       failNextPullCalls--;
       throw SyncTransportException('injected pull failure');
