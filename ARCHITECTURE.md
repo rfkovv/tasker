@@ -13,8 +13,8 @@ Dev environment: Linux.
    interfejsy eksportowane w barrel file. Cykle zabronione.
 3. **Offline-first, sync-ready**: stabilne UUID v4 od pierwszej migracji,
    kolumny `createdAt`/`updatedAt` (epoch millis) i `deletedAt` (soft delete)
-   w każdej tabeli danych. Synchronizacja (timestamp-based) będzie dodana
-   później bez przepisywania rdzenia.
+   w każdej tabeli danych. Synchronizacja: ZAIMPLEMENTOWANA (Stage 8b–8c,
+   patrz sekcja SYNC — as-built).
 4. **Material 3** — jednolity motyw od początku (unikać rozjazdu stylistyki
    między widokami).
 5. **Riverpod — mutacje poza lifecycle**: providerów nie mutujemy
@@ -28,7 +28,7 @@ Dev environment: Linux.
 - UNIFIED HEADER HIERARCHY (all destinations, portrait + desktop):
   Row 1 (very top) = screen title (destination name, i18n);
   Row 2 (only if that menu HAS controls) = toolbar with ONLY that
-  menu's controls — Tasks: Lista|Kalendarz + Filtruj (+ badge);
+  menu's controls — Tasks: Lista Kalendarz + Filtruj (+ badge);
   Contacts: its filter control; Kosz: segmented Zadania|Kontakty +
   "Opróżnij kosz"; Settings: NO toolbar.
   Portrait mobile: title AND toolbar hide TOGETHER on scroll down,
@@ -61,7 +61,7 @@ Dev environment: Linux.
   podsumowania w tym samym wierszu; lewy sidebar tylko nawigacja
 - Unified mobile toolbar (tasks, narrow/mobile — portrait AND compact
   landscape): ONE row = segmented control Lista|Kalendarz + przycisk
-  Filtruj + aktywny badge filtra/sortowania; chuje się przy scrollu w
+  Filtruj + aktywny badge filtra/sortowania; chowa się przy scrollu w
   dół i wraca przy scrollu w górę (wspólny widget HideOnScrollHeader —
   JEDNO miejsce w codebase z logiką scroll-hide). Filtr dropdown wciąż
   otwiera się pod przyciskiem Filtruj. Floating search button bez
@@ -83,8 +83,8 @@ Dev environment: Linux.
 - Compact mode (mobile): aktywowany WYŁĄCZNIE przez rozmiar okna
   (mobile branch active: width < kDesktopBreakpoint = 1000 — ten sam
   warunek co bottom NavigationBar — AND height < kCompactHeightLimit
-  = 600 logical px) —
-  nigdy przez Orientation/OrientationBuilder. W compact mode:
+  = 600 logical px) — nigdy przez Orientation/OrientationBuilder.
+  W compact mode:
   a) pasek tytułu (AppBar) ukryty na ekranach list
   b) globalny search trigger = pływający okrągły przycisk
      (FloatingSearchButton) w prawym górnym rogu obszaru treści:
@@ -112,35 +112,44 @@ Dev environment: Linux.
 - Nawigacja: go_router
 - Baza: drift (SQLite)
 - Motyw: Material 3
+- Sync server: Dart (dart:io HttpServer, stdlib only, zero runtime
+  deps) — patrz sekcja SYNC
 
 ## Struktura projektu (feature-first)
 
 lib/
   app/
     main.dart               — runApp(ProviderScope(child: TaskMasterApp()))
-    app_router.dart         — GoRouter: '/', '/tasks/:id'
+    app_router.dart         — GoRouter
     app_shell.dart          — adaptacyjny layout (desktop: nav rail; mobile: bottom nav)
   local_db/                 — wspólna warstwa bazy (drift), patrz niżej
   features/
     tasks/                  — etap 1
     contacts/               — etap 2
-    settings/               — etap 3 (opcjonalnie)
+    settings/               — etap 3
+    sync/                   — Stage 8b/8c (patrz SYNC — as-built)
   shared/                   — motyw, wspólne widgety, utilsy
+server/                     — dumb sync server (Stage 8c-1; osobna paczka
+                             Dart, wykluczona z analizy Fluttera w
+                             analysis_options.yaml)
 
 Każdy feature: domain/ (encje, enumy, interfejs repozytorium),
 data/ (implementacja + mapper), presentation/ (providers, screens, widgets),
 plus barrel `<feature>.dart` eksportujący WYŁĄCZNIE: encje, interfejs
 repozytorium, filtry, publiczne providery i ekrany. Implementacje i DAO
 nigdy nie są eksportowane poza moduł.
+WYJĄTEK: features/sync — warstwa data sync używa local_db BEZPOŚREDNIO
+(infrastruktura, nie import cudzego feature); zakaz importu presentation
+innych features nadal obowiązuje.
 
-## Schemat bazy (drift, schemaVersion = 1)
+## Schemat bazy (drift, schemaVersion = 4)
 
 tasks
   id TEXT PK, title TEXT, description TEXT NULL,
   priority TEXT (enum TaskPriority: low/medium/high/urgent),
   status TEXT (enum TaskStatus: todo/inProgress/done) — ŹRÓDŁO PRAWDY,
-  dueDate INT NULL, startDate INT NULL (pod Gantt, etap 7),
-  ownerId TEXT (pod przyszły sync),
+  dueDate INT NULL, startDate INT NULL (pod Gantt),
+  ownerId TEXT (deviceId profilu),
   createdAt INT, updatedAt INT, deletedAt INT NULL
 
 tags
@@ -161,85 +170,140 @@ contacts
   id TEXT PK, name TEXT, role TEXT NULL, email TEXT NULL, phone TEXT NULL,
   createdAt INT, updatedAt INT, deletedAt INT NULL
 
-task_contacts (łącząca, composite PK — relacja wiele-do-wielu)
+task_contacts (łącząca, composite PK)
   taskId TEXT FK, contactId TEXT FK
 
-task_dependencies (pod Gantt, etap 7)
+task_dependencies (pod Gantt)
   predecessorId FK, successorId FK
 
-app_settings (key-value)
+app_settings (key-value, NIE synchronizowane — per urządzenie)
   key TEXT PK, value TEXT
+  (klucze sync: deviceId, sync cursor, lastSyncedAt)
+
+sync_outbox (Stage 8b-1; transactional enqueue, FIFO, dedup przy pushu)
+  tableName, rowId, payload, createdAt (+ attempts wg implementacji)
 
 Uwagi:
-- Brak kolumny isDone (usunięta decyzją — source of truth = status;
-  Task.isDone jako getter na encji domeny).
-- Brak kolumny position w tasks (dodana w etapie 7 jako fractional
-  indexing — kolizje reorder przy syncu rozwiązane leksykograficznie).
+- Brak kolumny isDone (source of truth = status; Task.isDone getter).
 - Timestampy: epoch millis; ID: UUID v4.
+- Dostępu do bazy w kontekście sync NIE dodaje się przez repozytoria —
+  silnik sync (features/sync/data) używa drift bezpośrednio.
 
 ## Komunikacja frontend ↔ dane
 
 Logika bazodanowa przez repository pattern: UI zna WYŁĄCZNIE interfejs
 TaskRepository (Riverpod provider). Mapper (task_mapper.dart) jako jedyny
 punkt styku encji domeny z wierszami drift. DAO nigdy nie opuszcza modułu.
+(Wyjątek: silnik sync — patrz wyżej.)
 
-## Synchronizacja (PRZYSZŁOŚĆ — nie etap bieżący)
+## SYNC (Stages 8b–8c) — AS-BUILT (stan faktyczny; sekcja autorytatywna)
 
-Zaprojektowana pod dodanie bez rewrite:
-- soft delete (deletedAt) — kasowanie replikuje się jako rekord
-- updatedAt jako podstawa LWW (last-write-wins)
-- ownerId — deviceId profilu (UUID generowany raz, cache w app_settings)
-- brak cykli: sync podpięty na poziomie repozytoriów, nie UI
-Docelowa strategia sync (etap 6+, do wyboru: Syncthing/plik bazowy,
-CRDT, własny serwer) — warstwa danych ma pozwalać na wpięcie bez zmian w UI.
+**Zasada nadrzędna**: local-first, dumb server, smart client. Lokalna baza
+(drift, v4) jest jedynym źródłem prawdy; aplikacja w pełni funkcjonalna
+offline. Serwer przechowuje i porządkuje, klient scalalnia. Cała logika
+merge po stronie klienta (Dart, testowalna). Serwer ma ZERO wiedzy o
+tabelach i domenach.
+
+### Komponenty (lib/features/sync/)
+- **Outbox** (8b-1): każda mutacja whitelisted tabeli enqueue'uje event
+  W TEJ SAMEJ transakcji drift.
+- **Push engine** (8b-2): outbox FIFO, dedup po (tableName, rowId) z
+  zachowaniem najnowszego, pominięcie brakujących wierszy, kolejność
+  parents-first (tasks → tags/contacts → subtasks/comments → linki),
+  push przez transport, atomowe czyszczenie batcha. `fullPush()` (8c-3):
+  wszystkie wiersze whitelisted tabel BEZ outboxa (tylko initial sync).
+- **Pull engine** (8b-3): `pullAndMerge(cursor)`, domyślnie
+  `persistCursor: true` (initial sync jako jedyny wyjątek). Tabele danych:
+  LWW po `max(coalesce(updatedAt, createdAt), coalesce(deletedAt, 0))`
+  — soft-delete jest edycją. Incoming wygrywa tylko przy STRICTE większym.
+  Tabele join (task_tags, task_contacts, task_dependencies): pure
+  add-wins — brak linku lokalnie → insert; obecny → no-op; incoming
+  removal → ZAWSZE skip (conflictLost). Zastosowane eventy NIGDY nie
+  enqueue'ują do outboxa (no echo).
+- **Coordinator** (8b-4 + 8c-3): sesja = push → pull → persist
+  lastSyncedAt (app_settings, per-device). Triggery: watch na outbox +
+  3 s debounce (koaleskuje burst), startup (post-frame), manualne
+  `syncNow()`. Sesje koalesują (re-entrant wywołania dzielą Future).
+  Failure → backoff wykładniczy 5 s → ×2 → cap 15 min, jitter ±20 %
+  (injectable), reset po sukcesie; pauza w tle (AppLifecycle), resume na
+  foreground; mutation debounce anuluje pending backoff.
+- **Initial sync** (null cursor, 8c-3): pull (cały log) → fullPush() →
+  pull ponownie → persist kursora. Nigdy nie enqueue'uje całej bazy.
+- **Transport** (8c-2): `HttpSyncTransport` na dart:io HttpClient (stdlib;
+  `allowSelfSigned` wymaga badCertificateCallback — dlatego nie package:http).
+  Push chunkowany ≤ 200/request; pull: paginacja (limit 500, follow
+  hasMore) W RAMACH jednego wywołania — kontrakt silnika: "wszystko od
+  kursora". Zero retry w transporcie. Timeouty: connect 5 s, request 30 s.
+- **Config** (8c-4): compile-time przez --dart-define: SYNC_BASE_URL,
+  SYNC_API_KEY, SYNC_ALLOW_SELF_SIGNED. Dev fallbacki: localhost:8080,
+  placeholder key, self-signed=true. Release bez SYNC_BASE_URL → głośne
+  ostrzeżenie startupowe. Endpoint jest częścią WYDANIA aplikacji, NIE
+  daną użytkownika; jeden serwer; brak konfiguracji runtime.
+
+### Serwer (server/, 8c-1)
+Dart, stdlib only, zero runtime deps; cel deploy: Proxmox LXC.
+- POST /events (Bearer auth, constant-time compare; batch ≤ 200, inaczej
+  413) → { accepted, firstSeq, lastSeq }
+- GET /events?since=<seq>&limit=<n> (since WYŁĄCZNY; default 500,
+  max 1000) → { events, nextCursor, hasMore }
+- GET /health (bez auth) → { ok, lastSeq }
+Storage: append-only NDJSON (SYNC_LOG_PATH); ack ⇒ flush() (trwałość na
+kill-process; pełna odporność na utratę zasilania wymagałaby fsync —
+udokumentowane w kodzie, patrz Backlog #5). Seq recovery po restarcie:
+max(file)+1. Konfiguracja env: SYNC_HOST, SYNC_PORT, SYNC_API_KEY,
+SYNC_LOG_PATH, SYNC_CERT_PATH/SYNC_KEY_PATH (HTTPS; brak → plain HTTP
++ ostrzeżenie na stderr). SIGTERM → drain in-flight, flush, exit 0.
+
+### Semantyka protokołu
+- Log serwera może zawierać duplikaty eventów (retry idempotent):
+  nieszkodliwe — merge po stronie klienta dedupuje po (tableName, rowId).
+- Kursor (app_settings, per-device) = seq serwera. lastSyncedAt =
+  wall-clock ostatniej udanej sesji (app_settings, per-device).
+
+### Konwergencja usuwania (istotne!)
+- Soft-delete konwerguje jako zwykła edycja (LWW na deletedAt).
+- "Opróżnij kosz" (hard delete lokalny) NIE emituje jeszcze purge-eventów
+  — wiersze odrpcone z kosza mogą wrócić na urządzeniu z innego
+  urządzenia po pullu. Obsługiwane przez protokół purge (Backlog #7).
+- Removals linków join-tables NIE konwergują (pure add-wins). Link usunięty
+  na jednym urządzeniu zostaje na innych — do czasu zmiany protokołu
+  (Backlog #6). NIE poprawiać ad hoc.
+
+### Zgodność ze starą specyfikacją Stage 8 (NIEWYKONANE punkty)
+Kontakt z Postgres/auth/inbox został świadomie porzucony przy pracach:
+- Dart Frog + Postgres + Caddy → zamiast tego stdlib server + NDJSON
+  (dumb invariant, minimalizm); autoryzacja: statyczny Bearer API key
+  (konto ownera nie istnieje), brak sync_inbox (zamiast tego kolejność
+  parents-first + skip), brak sync_conflicts (liczniki w PullSummary),
+  brak rate limit, brak TTL tombstone'ów, brak purge-eventów, brak
+  detekcji cykli DAG (brak CRUD dependencies), brak UI konfiguracji
+  (endpoint compile-time). Wszystkie te punkty — patrz Backlog.
 
 ## Plan wdrożenia (każdy etap kończy się działającą wersją)
 
-## Plan wdrożenia (zaktualizowany)
-
-1. Rdzeń zadań + persystencja ✅ (done)
-2. Kontakty + linkowanie ✅ (etap 2)
-3. Subtasks + komentarze + detale ekranu zadania
-4. Widok Kalendarza + unscheduled backlog (drag & drop / click-to-match;
-   pattern:  drag z backlogu na dzień = ustaw dueDate; drag z dnia
-   na backlog = usuń termin; click-to-match jako fallback)
-5. Build Windows i Linux (release, CI: GitHub Actions runner windows)
-6. Build/test Android (nawigacja mobilna, path_provider, long-press drag)
-7. Przygotowanie warstwy pod sync
-8. Kanban, Gantt
+1. Rdzeń zadań + persystencja ✅
+2. Kontakty + linkowanie ✅
+3. Subtasks + komentarze + detale ekranu zadania ✅
+4. Widok Kalendarza + unscheduled backlog ✅
+5. Build Windows i Linux ✅
+6. Build/test Android ✅
+7. Przygotowanie warstwy pod sync ✅ (7.5: landscape polish ✅)
+8. SYNC — Stage 8b (silnik lokalny: outbox/push/pull-LWW/coordinator) ✅
+   + Stage 8c (server/transport/backoff/config) ✅ + Stage 8d (UI sync:
+   status + "Synchronizuj teraz") — BIEŻĄCY
+9. Kanban, Gantt (przyszłość)
 
 ## Szczegóły etapu 1
 
 local_db/:
-  database.dart          — AppDatabase (drift), schemaVersion 1, MigrationStrategy
-  tables/*.dart          — klasy tabel (jak wyżej)
+  database.dart          — AppDatabase (drift), MigrationStrategy
+  tables/*.dart          — klasy tabel
   daos/tasks_dao.dart    — watchAllTasks(filter), watchTaskById, upsertTask,
                            softDeleteTask, updateStatus
   providers/database_provider.dart — @Riverpod(keepAlive: true)
   value_objects/owner_id.dart — UUID profilu, cache w app_settings
 
-features/tasks/:
-  domain/: task.dart (freezed, getter isOverdue, isDone),
-           task_priority.dart, task_status.dart,
-           task_repository.dart (interfejs: watchAll, watchById, create,
-           update, updateStatus, delete), task_filter.dart
-  data/:
-    task_repository_impl.dart, task_mapper.dart
-  presentation/:
-    providers/task_list_provider.dart (Stream<List<Task>>, TaskFilter),
-    task_form_provider.dart,
-    screens/task_list_screen.dart, task_form_screen.dart,
-    widgets/task_tile.dart, task_priority_badge.dart, overdue_indicator.dart
-  tasks.dart (barrel: tylko Task, TaskRepository, TaskFilter,
-  taskListProvider, TaskListScreen)
-
-app/: main.dart, app_router.dart (GoRouter: '/', '/tasks/:id'), app_shell.dart
-
-Kryterium ukończenia etapu 1: aplikacja odpala na desktopie, lista zadań
-z SQLite, tworzenie/edycja/usuwanie (tytuł, opis, tagi, priorytet, termin),
-wizualne oznaczenie przeterminowanych, dane przeżywają restart.
-Testy: unit na isOverdue/filtrowaniu, repository test na
-TaskRepositoryImpl (in-memory drift), widget test task_tile.
+app/: main.dart, app_router.dart, app_shell.dart
 
 ## Ścieżki platformowe (nota pod etapy 4–5)
 
@@ -251,196 +315,39 @@ Decyzja raz, helper w app/, żadnych hardcoded ścieżek w DAO.
 
 ## Feature "Ekspedycje" (features/expeditions) — etap daleki
 
-Przeznaczenie: planowanie tras służbowych — trasa zawsze zaczyna się
-i kończy w siedzibie (HQ), przez wybrane przystanki. Planowanie statyczne
-(obliczenie i zaplanowanie trasy), NIE nawigacja na żywo (przyszła opcja).
+[NIEZMIENIONE — treść sekcji jak w dotychczasowej wersji pliku]
 
-### Model danych (nowa kolekcja, migracja schematu)
+## BACKLOG (kolejność wg priorytetu)
 
-expedition
-  id TEXT PK, name TEXT,
-  ratePerKm REAL            — kopia wartości z momentu planowania
-                              (koszt ma być czytelny offline),
-  status enum (draft/planned/done),
-  createdAt INT, updatedAt INT, deletedAt INT NULL
+1. **Domena + Let's Encrypt + wyłączenie self-signed**: certyfikat LE
+   na Proxmoxie → SYNC_CERT_PATH/SYNC_KEY_PATH; potem w apce default
+   SYNC_ALLOW_SELF_SIGNED=false i usunięcie flagi.
+   Źródło: ustalenie 8c-4 ("IP teraz, domena później").
+2. **Backup logu serwera cronem** (host Proxmoxa, poza kontenerem):
+   codziennie cp/rsync SYNC_LOG_PATH na drugą lokację. Jedyna kopia
+   danych poza urządzeniami.
+3. **Edycja komentarzy (UI)**: musi bumpować updatedAt (LWW; invariant
+   w AGENTS.md > RULES 11).
+4. **CRUD zależności (task_dependencies)**: każdy CRUD enqueue'uje eventy
+   outboxa; wdrożenie od razu z detekcją cykli DAG (DFS) przy pullu
+   (z dawnej specyfikacji Stage 8 — teraz z Backlogiem).
+5. **fsync / SQLite dla logu serwera**: flush() = trwałość na
+   kill-process, nie na utratę zasilania hosta. Komentarz w
+   server/lib/src/event_log.dart.
+6. **Zbieżność removalów join-tables**: zmiana protokołu — purge-event
+   dla join tables rozstrzygany przez total order logu serwera.
+   Zmiana server + pull engine RAZEM; nie robić ad hoc.
+7. **Purge-eventy dla "Opróżnij kosz"**: hard delete lokalny ma emitować
+   purge-event; urządzenia hard-delete'ują lokalnie; docelowo TTL
+   tombstone'ów po stronie serwera. Do czasu wdrożenia: wiersze
+   opróżnione z kosza mogą wrócić po pullu z innego urządzenia
+   (świadome ograniczenie).
+8. **Sync conflicts UI** (dawne sync_conflicts): w MVP liczniki
+   skipped/conflictLost w PullSummary; UI listy konfliktów — dopiero
+   gdy pojawi się pierwszy realny konflikt do pokazania.
 
-expedition_stop (przystanek; kolejność = order INT)
-  id TEXT PK, expeditionId FK, taskId FK NULL,
-  locationId TEXT (references punkt geokodowany),
-  dwellMinutes INT          — czas postoju (manualna zmiana = cascade),
-  frozen: legDistanceKm REAL, legDurationMin INT,
-          etaMin INT, etdMin REAL NULL (odliczone od startu),
-  createdAt, updatedAt
-
-expedition_tasks (composite PK)   — który task należy do ekspedycji
-  taskId FK, expeditionId FK
-
-### Zmiany w istniejących modelach (mała migracja — wcześniej!)
-
-- Kontakt: kolumna location (nazwa + lat + lon; geokodowanie Nominatim;
-  wpisanie z mapy, UI-driven)
-- Task: kolumna location (edytowalna; DEFAULT = lokalizacja
-  primary contact). Wprowadzamy pojęcie "primary contact" — flaga
-  isPrimary na relacji task_contact (dokładnie jeden na task);
-  NIE dziedziczymy z "pierwszego kontaktu z listy"
-- HQ: jedna globalna lokalizacja z settingsów (klucz hq_location)
-
-### Wyliczenia (logika domenowa, testowalna bez UI)
-
-- Trasa: OSRM route service — geometria, dystans per leg,
-  czas przejazdu (duration per leg). Kolejność: HQ → przystanki
-  (kolejność ręczna, draggable) → HQ
-- Dystans całkowity = suma odcinków geometrii (km)
-- Koszt = dystans × stawka (stawka z settingsów lub kafelka)
-- Harmonogram: eta_i = etd_(i-1) + legDuration (z OSRM);
-  etd_i = eta_i + postój_i; ręczna zmiana czasu postoju dowolnego
-  przystanku przelicza wszystkie kolejne (kaskadowo);
-  wyświetlany też ETA powrotu do HQ
-- Wartości frozen (legDistance, legDuration, eta/etd) trzymamy
-  w rekordach przystanków — plan oglądalny offline, choć liczony online
-
-### Źródła danych (OTWARTE USŁUGI)
-
-- Routing/travel time: OSRM (demo api dla dev; self-host docelowo)
-  lub OpenRouteService (darmowy klucz)
-- Geokodowanie: Nominatim — wybór lokalizacji Z MAPY (zasada UI-driven,
-  nie ręczne wpisywanie); fallback: ręczne wpisanie adresu
-- Kafelki mapy: OpenStreetMap via flutter_map
-- UWAGA OFFLINE: jedyny moduł wymagający połączenia (kafelki + routing).
-  Wymaga łączności w fazie MVP; cache kafelków i offline routing
-  (Valhalla/GraphHopper) to osobny etap przyszły
-
-### UI (zgodnie z zasadami layoutu)
-
-- Góra zakładki: edytowalne kafelki konfiguracji — siedziba, stawka km,
-  domyślny czas postoju (siedziba i stawka globalne — app_settings;
-  stawka per-ekspedycja tylko jeśli pola wymagają rozbieżności)
-- Środek: mapa z wyrysowaną trasą (flutter_map + polyline)
-- Prawy panel: per przystanek nazwa (z zadania), dystans odcinka,
-  czas przyjazdu/odjazdu, czas postoju (edytowalny); na dole:
-  łącznie dystans i koszt
-- Wybór zadań: na początku tworzenia ekspedycji — lista zadań z
-  filtrem "ma lokalizację" (checkboxy); przystanek = lokalizacja zadania
-- Kolejność przystanków: drag & drop w prawym panelu;
-  optymalizacja kolejności (TSP) jako przyszła opcja
-- Ręczna zmiana czasu postoju dowolnego przystanku przelicza
-  wszystkie ETA/ETD downstream (cascade) + czas powrotu do HQ
-
-### Zależności modelowe (wymagane PRZED tym etapem)
-
-- Migracja schematu: location na contact i task, flaga primary
-  contact, kolekcje expeditions
-- i18n: wszystkie stringi modułu przez gen_l10n (PL/EN)
-- Kolejność przystanków: ręczna; optymalizacja TSP jako przyszła opcja
-  
 ## Aktualnie nieznane / otwarte
 
 - Toggle done↔todo w liście zgubi informację o inProgress — świadome
   uproszczenie, do przeglądu w etapie 3.
-- Sync: finalny mechanizm (serwer vs folder pliku) — pytania na etapie 6,
-  architektura przygotowana pod każdy wariant.
-  
-  ## SYNC (Stage 8) — specyfikacja
-
-**Zasada nadrzędna**: dumb server, smart client. Serwer przechowuje i porządkuje,
-klient scalalnia. Cała logika merge po stronie klienta (Dart, testowalna).
-
-### Serwer (Proxmox)
-- Dart Frog, Postgres (kontener), Caddy reverse proxy (TLS, Let's Encrypt).
-- Auth: POST /auth/register, POST /auth/login (email+hasło, argon2/bcrypt),
-  token 32B losowych, serwer trzyma tylko hash. MVP: jedno konto (owner).
-- Tabele serwera: users, auth_tokens, sync_events
-  (owner_id, seq BIGSERIAL globalny, table_name, row_id, payload JSONB,
-  updated_at, device_id, received_at).
-- POST /sync/push {events:[…]} → dopisuje eventy, zwraca {firstSeq,lastSeq}.
-- GET /sync/pull?after=<seq>&limit=N → eventy ownera o seq>after, ORDER BY seq,
-  {events, nextCursor, hasMore}.
-- Serwer NIE rozstrzyga konflitków. Walidacja: whitelist nazw tabel, limit rozmiaru
-  batcha, rate limit.
-
-### Klient (drift)
-- features/sync (domain/data/presentation). Warstwa danych używa wspólnego
-  modułu bazy (local_db) BEZPOŚREDNIO — to infrastruktura, nie import cudzego
-  feature. Zakaz importu presentation innych features.
-- Migracje: sync_outbox (tableName, rowId, payload, createdAt, attempts),
-  sync_inbox (odłożone eventy z brakującymi rodzicami), sync_conflicts (log),
-  app_settings + deviceId (UUID v4 przy pierwszym starcie), lastSyncCursor,
-  serverUrl, authToken, syncEnabled.
-- Outbox: KAŻDA mutacja repozytorium zapisuje wiersz do sync_outbox W TEJ SAMEJ
-  TRANSAKCJI drift (pełny stan po mutacji, tombstone = wiersz z deletedAt).
-  Push: batch z outbox → POST /sync/push → usunięcie po ack. Błędy: backoff
-  wykładniczy + attempts.
-- Pull: GET po kursorze → aplikowanie eventów po kolei w kolejności seq,
-  transakcyjnie, kursor zapisywany razem z ostatnim aplikowanym eventem
-  (odporność na crash w trakcie).
-- Dwufazowość per batch: najpierw encje (tasks, tags, contacts), potem
-  relacje/dzieci (subtasks, comments, task_tags, task_contacts,
-  task_dependencies). Event z brakującym rodzicem → sync_inbox, retry przy
-  każdym syncu, NIE blokuje reszty.
-- DAG: przed aplikacją krawędzi task_dependencies — detekcja cyklu (DFS) na
-  aktualnym grafie; cykl → skip + wpis do sync_conflicts, nie przerywa syncu.
-
-### Semantyka konfliktów — POPRAWKA (po decyzji o Koszu)
-- Row-level LWW, cały rekord: wygrywa wiersz o większym
-  max(updatedAt, deletedAt) — niezależnie czy to edycja, usunięcie
-  czy przywrócenie. Tiebreak: deviceId; identyczne → no-op.
-- Przywrócenie z kosza = zwykła edycja (deletedAt → null, bump updatedAt).
-- Trwałe usunięcie = purge-event w logu; urządzenia hard-delete'ują
-  lokalnie; serwer trzyma tombstone do TTL (90 dni, konfigurowalne);
-  bez protokołu ack w MVP.
-
-### Kosz (model usuwania)
-- Zero nowych tabel fizycznych: kosz = wiersze z deletedAt != null,
-  surfaced w dedykowanej destynacji "Kosz" (segmented Zadania Kontakty).
-- Usunięcie taska soft-kasuje kaskadowo potomków w tej samej transakcji;
-  przywrócenie przywraca task + wszystkie aktualnie usunięte wiersze
-  go referencjonujące (subtasks, comments, task_tags,
-  task_dependencies, task_contacts). Kontakt analogicznie
-  (linki, NIE zadania po drugiej stronie).
-- Trwałe usunięcie WYŁĄCZNIE ręczne w Koszu ("Opróżnij kosz" +
-  confirm). Żadnych auto-purge, nigdzie.
-- UI: destynacja /trash. Desktop rail — trzecia pozycja, PRZED
-  separatorem/Ustawieniami. Mobile NavigationBar — trzecia pozycja
-  (Kosz), Ustawienia czwarte. Header hierarchy: tytuł "Kosz" na górze,
-  toolbar poniżej (segmented Zadania|Kontakty + "Opróżnij kosz").
-  NO search trigger (brak floating lupy w Koszu — kosz nie jest
-  przeszukiwalny w MVP). Portrait scroll-hide, desktop static — te same
-  reguły co każda destynacja. Per-item restore button na liśmie.
-  "Opróżnij kosz" = jedyny nieodwracalny action w aplikacji; dialog
-  potwierdzenia before hard DELETE wszystkich soft-deleted rows w
-  jednej transakcji. Restore = zwykła edycja (deletedAt → null, bump
-  updatedAt). Przywrócenie taska czyści deletedAt na tasku ORAZ na
-  kaskadowej partii comments (wiersze z deletedAt == deletedAt taska —
-  tożsamość batchu). Comments z własnym, wcześniejszym deletedAt
-  (indywidualnie usunięte) NIE są przywracane — anty-zombie. Task i
-  partia comments dostają wspólny bump updatedAt (jeden `now` na
-  transakcję; cascade delete zapisuje deletedAt == updatedAt ==
-  task.deletedAt — deletedAt jest edycją equal-rank pod LWW). Comments
-  to jedyna tabela z deletedAt poza tasks/contacts; subtasks,
-  task_tags, task_dependencies, task_contacts nie mają kolumny
-  deletedAt, wiersze pozostają nietknięte. Przywrócenie kontaktu
-  przywraca tylko kontakt (linki task_contacts pozostają) — NIE
-  przywraca zadań po drugiej stronie linku.
-
-### UI/UX
-- Settings: sekcja Sync — server URL, login, status (idle/push/pull/error,
-  timestamp), "Synchronizuj teraz", lista konfliktów DAG.
-- Auto-sync: przy starcie aplikacji + debounce 4 s po mutacjach; manual:
-  przycisk. Wszystkie stringi przez .arb (PL+EN).
-- app_settings NIE synchronizowane (per urządzenie).
-
-### Plan implementacji (warstwy, MODEL PŁATNY)
-1. Serwer: szkielet Dart Frog + Postgres + auth + healthcheck; deploy za Caddy.
-2. Klient: migracje + outbox zapisywany przez WSZYSTKIE repozytoria.
-3. Push path + backoff + testy.
-4. Pull path: inbox, LWW, dwufazowość, cycle guard + matryca testów
-   konfliktów (edycja↔edycja, edycja↔usunięcie, cykl DAG, przerwany sync,
-   out-of-order eventy, brakujący rodzic).
-5. Settings UI sync + status provider.
-6. Test integracyjny dwuetapowy (Linux + Android): równoległe operacje z
-   matrycy → identyczna zawartość baz.
-
-### Kryteria domknięcia Stage 8
-Dwie instancje osiągają identyczną zawartość bazy po równoległych operacjach
-z matrycy; sync przeżywa restart aplikacji i utratę sieci; analyze + testy
-zielone; serwer healthcheck za TLS.
+- (usunięto — sync zdecydowany i wdrożony, patrz SYNC as-built)
