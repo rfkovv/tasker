@@ -14,7 +14,8 @@ import '../domain/sync_transport.dart';
 /// higher-level package does not expose.
 ///
 /// Config comes from the constructor — no global state, no app_settings
-/// reads (wiring lands in 8c-4).
+/// reads. Production wiring: [SyncEndpointConfig] + `createSyncTransport`
+/// (8c layer 4) via `--dart-define`.
 class HttpSyncTransport implements SyncTransport {
   HttpSyncTransport({
     required this.baseUrl,
