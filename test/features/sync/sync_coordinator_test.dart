@@ -8,82 +8,7 @@ import 'package:taskmaster/features/sync/sync.dart';
 import 'package:taskmaster/local_db/database.dart' as db;
 import 'package:taskmaster/local_db/providers/database_provider.dart';
 
-/// Fake one-shot timers driven manually — no real-time sleeps.
-///
-/// Time is cumulative: [elapse] advances a fake clock; timers fire when
-/// their arm-time + duration is reached.
-class FakeTimers {
-  Duration _now = Duration.zero;
-  final pending = <_FakeTimer>[];
-
-  Duration get now => _now;
-
-  Timer call(Duration duration, void Function() callback) {
-    final timer = _FakeTimer(
-      this,
-      duration,
-      callback,
-      fireAt: _now + duration,
-    );
-    pending.add(timer);
-    return timer;
-  }
-
-  /// Advances the fake clock and fires every timer whose [fireAt] ≤ now.
-  void elapse(Duration duration) {
-    _now += duration;
-    final due =
-        pending.where((t) => t.isActive && t.fireAt <= _now).toList();
-    for (final timer in due) {
-      timer._fire();
-    }
-  }
-
-  /// Fires all currently pending timers (ignore remaining duration).
-  void fireAll() {
-    final due = List<_FakeTimer>.of(pending);
-    for (final timer in due) {
-      if (!timer.isActive) continue;
-      timer._fire();
-    }
-  }
-
-  int get activeCount => pending.where((t) => t.isActive).length;
-}
-
-class _FakeTimer implements Timer {
-  _FakeTimer(
-    this._owner,
-    this.duration,
-    this._callback, {
-    required this.fireAt,
-  });
-
-  final FakeTimers _owner;
-  final Duration duration;
-  final Duration fireAt;
-  final void Function() _callback;
-  var _active = true;
-
-  @override
-  bool get isActive => _active;
-
-  @override
-  int get tick => _active ? 0 : -1;
-
-  @override
-  void cancel() {
-    _active = false;
-    _owner.pending.remove(this);
-  }
-
-  void _fire() {
-    if (!_active) return;
-    _active = false;
-    _owner.pending.remove(this);
-    _callback();
-  }
-}
+import 'support/fake_timers.dart';
 
 /// Push engine wrapper that counts sessions and can gate completion.
 class CountingPushEngine implements SyncPushEngine {
@@ -91,6 +16,7 @@ class CountingPushEngine implements SyncPushEngine {
 
   final SyncPushEngine _inner;
   int calls = 0;
+  int fullPushCalls = 0;
 
   /// When set, push awaits this future before delegating (concurrency tests).
   Future<void>? gate;
@@ -102,6 +28,14 @@ class CountingPushEngine implements SyncPushEngine {
     if (g != null) await g;
     return _inner.pushOutbox();
   }
+
+  @override
+  Future<void> fullPush() async {
+    fullPushCalls++;
+    final g = gate;
+    if (g != null) await g;
+    return _inner.fullPush();
+  }
 }
 
 class CountingPullEngine implements SyncPullEngine {
@@ -111,9 +45,9 @@ class CountingPullEngine implements SyncPullEngine {
   int calls = 0;
 
   @override
-  Future<PullSummary> pullAndMerge() {
+  Future<PullSummary> pullAndMerge({bool persistCursor = true}) {
     calls++;
-    return _inner.pullAndMerge();
+    return _inner.pullAndMerge(persistCursor: persistCursor);
   }
 }
 
@@ -135,6 +69,8 @@ class _Harness {
       pullEngine: pull,
       debounce: const Duration(seconds: 3),
       timerFactory: timers.call,
+      // Deterministic backoff for existing session tests (no jitter).
+      jitter: (base) => base,
       // Tests drive startup explicitly — no real SchedulerBinding.
       deferToPostFrame: (action) => action(),
       logger: logs.add,
@@ -149,6 +85,13 @@ class _Harness {
   final InMemorySyncTransport transport;
 
   Future<void> close() => database.close();
+
+  /// Forces the incremental path (non-null cursor) for session tests.
+  Future<void> setCursor(String cursor) =>
+      database.storeSetting(SyncPullEngineImpl.cursorSettingKey, cursor);
+
+  Future<String?> cursor() =>
+      database.lookupSettings(SyncPullEngineImpl.cursorSettingKey);
 
   Future<void> seedTask(String id, {String title = 'T'}) async {
     await database.into(database.tasks).insert(
@@ -196,6 +139,7 @@ void main() {
 
   test('session = push then pull; lastSyncedAt only after both succeed',
       () async {
+    await h.setCursor('0');
     await h.seedTask('t1');
 
     final states = <SyncState>[];
@@ -204,6 +148,7 @@ void main() {
     await h.coordinator.syncNow();
 
     expect(h.push.calls, 1);
+    expect(h.push.fullPushCalls, 0, reason: 'non-null cursor → no fullPush');
     expect(h.pull.calls, 1);
     expect(await h.outbox(), isEmpty, reason: 'push drained outbox');
     final last = await h.lastSyncedAt();
@@ -214,6 +159,7 @@ void main() {
   });
 
   test('session does not persist lastSyncedAt when pull fails', () async {
+    await h.setCursor('0');
     await h.seedTask('t1');
     transport.failNextPullCalls = 1;
 
@@ -226,6 +172,7 @@ void main() {
   });
 
   test('outbox insert → session runs after debounce (fake clock)', () async {
+    await h.setCursor('0');
     h.coordinator.start(startupSession: false);
     await h.seedTask('t1');
     await drainAsync();
@@ -246,6 +193,7 @@ void main() {
 
   test('debounce coalescing: 5 mutations within 3s → exactly 1 session',
       () async {
+    await h.setCursor('0');
     h.coordinator.start(startupSession: false);
 
     for (var i = 0; i < 5; i++) {
@@ -268,6 +216,7 @@ void main() {
   test(
       'transport failure → idle, outbox intact, lastSyncedAt unchanged; '
       'next trigger retries', () async {
+    await h.setCursor('0');
     await h.seedTask('t1');
     transport.failNextCalls = 1;
 
@@ -287,6 +236,7 @@ void main() {
 
   test('serialized sessions: coalesce, no concurrent transport calls',
       () async {
+    await h.setCursor('0');
     await h.seedTask('t1');
 
     final gate = Completer<void>();
@@ -309,6 +259,7 @@ void main() {
   });
 
   test('syncNow() runs a session immediately, bypassing debounce', () async {
+    await h.setCursor('0');
     h.coordinator.start(startupSession: false);
     await h.seedTask('t1');
     await drainAsync();
@@ -326,22 +277,26 @@ void main() {
     expect(h.push.calls, 1, reason: 'no second session until debounce fires');
   });
 
-  test('empty outbox at startup → pull only, no errors', () async {
+  test('empty outbox at startup → initial full sync, no errors', () async {
     expect(await h.outbox(), isEmpty);
 
     h.coordinator.start(startupSession: true);
     await drainAsync();
 
-    expect(h.push.calls, 1, reason: 'push runs but is a no-op on empty outbox');
-    expect(h.pull.calls, 1);
+    // Null cursor → pull → fullPush → pull. Empty DB: fullPush is a no-op.
+    expect(h.push.calls, 0, reason: 'no pushOutbox on initial sync');
+    expect(h.push.fullPushCalls, 1);
+    expect(h.pull.calls, 2);
     expect(transport.attemptedBatches, isEmpty,
-        reason: 'no transport push on empty outbox');
-    expect(transport.pullCallCount, 1);
+        reason: 'no transport push on empty DB');
+    expect(transport.pullCallCount, 2);
+    expect(await h.cursor(), isNotNull, reason: 'cursor persisted');
     expect(await h.lastSyncedAt(), isNotNull);
     expect(h.logs.where((l) => l.contains('failed')), isEmpty);
   });
 
   test('empty outbox debounce fire → no session', () async {
+    await h.setCursor('0');
     h.coordinator.start(startupSession: false);
     // Simulate a watch emission that saw rows, then rows vanished before
     // the timer fired: seed then delete outbox rows directly.

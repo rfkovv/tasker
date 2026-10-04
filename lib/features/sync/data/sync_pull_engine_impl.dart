@@ -41,7 +41,7 @@ class SyncPullEngineImpl implements SyncPullEngine {
   static void _ignore(String message) {}
 
   @override
-  Future<PullSummary> pullAndMerge() async {
+  Future<PullSummary> pullAndMerge({bool persistCursor = true}) async {
     final cursor = await _readCursor();
     final response = await _transport.pullSince(cursor);
 
@@ -70,8 +70,12 @@ class SyncPullEngineImpl implements SyncPullEngine {
     // Cursor advances only when the pull itself succeeded (we got here).
     // Apply failures already applied what they could — events are
     // idempotent, so a later session re-pulling the same range is safe.
+    // persistCursor:false is the coordinator's initial-sync first pull:
+    // the cursor is only written after pull → fullPush → pull succeed.
     final nextCursor = response.nextCursor;
-    await _persistCursor(nextCursor);
+    if (persistCursor) {
+      await _persistCursor(nextCursor);
+    }
 
     return PullSummary(
       applied: applied,

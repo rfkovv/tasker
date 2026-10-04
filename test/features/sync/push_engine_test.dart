@@ -308,4 +308,51 @@ void main() {
         reason: 'soft-delete is a tombstone, not a skip');
     expect(await h.outbox(), isEmpty);
   });
+
+  test('fullPush sends all whitelisted rows without outbox', () async {
+    await h.insertTaskRow('t1', title: 'All tables');
+    await h.insertCommentRow('c1', 't1', 'note');
+    await h.insertSubtaskRow('st1', 't1', 'sub');
+    await h.database.into(h.database.tags).insert(
+          db.TagsCompanion.insert(id: 'tg1', name: 'alpha'),
+        );
+    await h.database.into(h.database.taskTags).insert(
+          db.TaskTagsCompanion.insert(taskId: 't1', tagId: 'tg1'),
+        );
+    expect(await h.outbox(), isEmpty, reason: 'direct inserts, no enqueue');
+
+    await h.engine.fullPush();
+
+    final tables = h.transport.deliveredEvents.map((e) => e.tableName).toSet();
+    expect(
+      tables,
+      containsAll(['tasks', 'comments', 'subtasks', 'tags', 'task_tags']),
+    );
+    expect(await h.outbox(), isEmpty,
+        reason: 'fullPush never enqueues or clears outbox rows');
+
+    final ranks = [
+      for (final e in h.transport.deliveredEvents) _rank(e.tableName),
+    ];
+    expect(ranks, equals([...ranks]..sort()),
+        reason: 'parents-first rank order');
+  });
+}
+
+int _rank(String tableName) {
+  switch (tableName) {
+    case 'tasks':
+    case 'tags':
+    case 'contacts':
+      return 0;
+    case 'subtasks':
+    case 'comments':
+      return 1;
+    case 'task_tags':
+    case 'task_contacts':
+    case 'task_dependencies':
+      return 2;
+    default:
+      return 3;
+  }
 }

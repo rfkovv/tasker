@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../local_db/database.dart' as db;
+import '../../../local_db/synced_tables.dart';
 import '../domain/sync_event.dart';
 import '../domain/sync_push_engine.dart';
 import '../domain/sync_transport.dart';
@@ -62,7 +63,7 @@ class SyncPushEngineImpl implements SyncPushEngine {
       );
     }
 
-    final ordered = _orderParentsFirst(sendable);
+    final ordered = orderSyncEventsParentsFirst(sendable);
 
     try {
       if (ordered.isNotEmpty) {
@@ -81,36 +82,103 @@ class SyncPushEngineImpl implements SyncPushEngine {
     });
   }
 
-  /// Stable parent-before-child ordering. Dart's List.sort is unstable, so
-  /// the original (FIFO within rank) index is the tiebreaker.
-  List<SyncEvent> _orderParentsFirst(List<SyncEvent> events) {
-    final indexed = [
-      for (var i = 0; i < events.length; i++) (i, events[i]),
-    ];
-    indexed.sort((a, b) {
-      final rank = _tableRank(a.$2.tableName)
-          .compareTo(_tableRank(b.$2.tableName));
-      if (rank != 0) return rank;
-      return a.$1.compareTo(b.$1);
-    });
-    return [for (final pair in indexed) pair.$2];
-  }
+  /// Initial-sync path — ALL whitelisted rows, no outbox involvement.
+  ///
+  /// LWW: the server may already hold rows we push; the next pull's merge
+  /// dedupes by `(tableName, rowId)`. Soft-deleted rows are included so
+  /// peers learn tombstones. Join rows use composite natural keys.
+  @override
+  Future<void> fullPush() async {
+    final events = <SyncEvent>[];
 
-  static int _tableRank(String tableName) {
-    switch (tableName) {
-      case 'tasks':
-      case 'tags':
-      case 'contacts':
-        return 0;
-      case 'subtasks':
-      case 'comments':
-        return 1;
-      case 'task_tags':
-      case 'task_contacts':
-      case 'task_dependencies':
-        return 2;
-      default:
-        return 3;
+    final tasks = await _db.select(_db.tasks).get();
+    for (final row in tasks) {
+      events.add(
+        SyncEvent(tableName: 'tasks', rowId: row.id, payload: row.toJson()),
+      );
+    }
+
+    final tags = await _db.select(_db.tags).get();
+    for (final row in tags) {
+      events.add(
+        SyncEvent(tableName: 'tags', rowId: row.id, payload: row.toJson()),
+      );
+    }
+
+    final contacts = await _db.select(_db.contacts).get();
+    for (final row in contacts) {
+      events.add(
+        SyncEvent(
+          tableName: 'contacts',
+          rowId: row.id,
+          payload: row.toJson(),
+        ),
+      );
+    }
+
+    final subtasks = await _db.select(_db.subtasks).get();
+    for (final row in subtasks) {
+      events.add(
+        SyncEvent(
+          tableName: 'subtasks',
+          rowId: row.id,
+          payload: row.toJson(),
+        ),
+      );
+    }
+
+    final comments = await _db.select(_db.comments).get();
+    for (final row in comments) {
+      events.add(
+        SyncEvent(
+          tableName: 'comments',
+          rowId: row.id,
+          payload: row.toJson(),
+        ),
+      );
+    }
+
+    final taskTags = await _db.select(_db.taskTags).get();
+    for (final row in taskTags) {
+      events.add(
+        SyncEvent(
+          tableName: 'task_tags',
+          rowId: joinRowId(row.taskId, row.tagId),
+          payload: row.toJson(),
+        ),
+      );
+    }
+
+    final taskContacts = await _db.select(_db.taskContacts).get();
+    for (final row in taskContacts) {
+      events.add(
+        SyncEvent(
+          tableName: 'task_contacts',
+          rowId: contactLinkRowId(row.taskId, row.contactId),
+          payload: row.toJson(),
+        ),
+      );
+    }
+
+    final taskDependencies = await _db.select(_db.taskDependencies).get();
+    for (final row in taskDependencies) {
+      events.add(
+        SyncEvent(
+          tableName: 'task_dependencies',
+          rowId: dependencyRowId(row.predecessorId, row.successorId),
+          payload: row.toJson(),
+        ),
+      );
+    }
+
+    final ordered = orderSyncEventsParentsFirst(events);
+    if (ordered.isEmpty) return;
+
+    try {
+      await _transport.pushBatch(ordered);
+    } catch (error) {
+      _logger('sync fullPush: transport failed ($error)');
+      rethrow;
     }
   }
 }

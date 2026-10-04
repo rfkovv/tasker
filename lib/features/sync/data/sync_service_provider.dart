@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../local_db/providers/database_provider.dart';
@@ -15,10 +16,12 @@ import 'sync_transport_provider.dart';
 /// - `ref.read(syncServiceProvider.notifier).syncNow()` → manual session
 /// - `ref.read(syncServiceProvider.notifier).start()` → activate triggers
 ///   (outbox debounce + startup session); called once from `main()`.
+/// - App lifecycle is forwarded to the coordinator so backoff timers pause
+///   while backgrounded and re-arm on resume (8c layer 3).
 final syncServiceProvider =
     NotifierProvider<SyncService, SyncState>(SyncService.new);
 
-class SyncService extends Notifier<SyncState> {
+class SyncService extends Notifier<SyncState> with WidgetsBindingObserver {
   SyncCoordinator? _coordinator;
 
   @override
@@ -38,11 +41,33 @@ class SyncService extends Notifier<SyncState> {
       ),
     );
     coordinator.onStateChanged = (s) => state = s;
+
+    // Lifecycle wiring is best-effort: pure Riverpod unit tests have no
+    // WidgetsBinding. Backoff stays armed (default resumed) without it.
+    final binding = _tryBinding();
+    binding?.addObserver(this);
+
     ref.onDispose(() {
+      binding?.removeObserver(this);
       unawaited(coordinator.dispose());
     });
     _coordinator = coordinator;
     return coordinator.state;
+  }
+
+  static WidgetsBinding? _tryBinding() {
+    try {
+      return WidgetsBinding.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _coordinator?.notifyAppLifecycle(
+      resumed: state == AppLifecycleState.resumed,
+    );
   }
 
   /// Activates lifecycle triggers. Idempotent. Never blocks the caller.
