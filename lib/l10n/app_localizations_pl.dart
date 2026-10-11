@@ -444,4 +444,66 @@ class AppLocalizationsPl extends AppLocalizations {
   String searchShowAll(String count) {
     return 'Pokaż wszystkie ($count)';
   }
+
+  @override
+  String get settingsSync => 'Synchronizacja';
+
+  @override
+  String get syncStatusIdle => 'Bezczynny';
+
+  @override
+  String get syncStatusSyncing => 'Synchronizowanie…';
+
+  @override
+  String get syncNow => 'Synchronizuj teraz';
+
+  @override
+  String get syncNever => 'Nigdy nie synchronizowano';
+
+  @override
+  String syncLastSynced(String when) {
+    return 'Ostatnia synchronizacja: $when';
+  }
+
+  @override
+  String get syncJustNow => 'przed chwilą';
+
+  @override
+  String syncMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minuty temu',
+      many: '$count minut temu',
+      few: '$count minuty temu',
+      one: '1 minutę temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count godziny temu',
+      many: '$count godzin temu',
+      few: '$count godziny temu',
+      one: '1 godzinę temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dni temu',
+      many: '$count dni temu',
+      few: '$count dni temu',
+      one: '1 dzień temu',
+    );
+    return '$_temp0';
+  }
 }

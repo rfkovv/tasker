@@ -6,9 +6,28 @@ import 'package:taskmaster/features/settings/domain/app_settings_data.dart';
 import 'package:taskmaster/features/settings/domain/app_settings_repository.dart';
 import 'package:taskmaster/features/settings/presentation/providers/app_settings_provider.dart';
 import 'package:taskmaster/features/settings/presentation/screens/settings_screen.dart';
+import 'package:taskmaster/features/sync/sync.dart';
 import 'package:taskmaster/l10n/app_localizations.dart';
 import 'package:taskmaster/shared/hide_on_scroll_header.dart';
 import 'package:taskmaster/shared/timezone_util.dart';
+
+/// Minimal [SyncService] stand-in: exposes a fixed [SyncState] and counts
+/// `syncNow()` calls without touching the database or transport.
+class _FakeSyncService extends SyncService {
+  _FakeSyncService({SyncState initial = const SyncState.idle()})
+      : _initial = initial;
+
+  final SyncState _initial;
+  int syncNowCalls = 0;
+
+  @override
+  SyncState build() => _initial;
+
+  @override
+  Future<void> syncNow() async {
+    syncNowCalls++;
+  }
+}
 
 class _FakeSettingsRepository implements AppSettingsRepository {
   _FakeSettingsRepository(this._data);
@@ -74,11 +93,31 @@ class _Harness extends ConsumerWidget {
   }
 }
 
-Widget buildApp(AppSettingsRepository repository) {
+Widget buildApp(
+  AppSettingsRepository repository, {
+  SyncService? syncService,
+}) {
   return ProviderScope(
-    overrides: [appSettingsRepositoryProvider.overrideWithValue(repository)],
+    overrides: [
+      appSettingsRepositoryProvider.overrideWithValue(repository),
+      // Settings now hosts the sync section; keep it off the real
+      // database/transport in every widget test.
+      syncServiceProvider.overrideWith(
+        () => syncService ?? _FakeSyncService(),
+      ),
+    ],
     child: const _Harness(),
   );
+}
+
+/// Gives the test a tall viewport so the whole Settings list (including
+/// the bottom sync section) is laid out and hittable — otherwise the
+/// section sits below the fold, especially with longer Polish strings.
+void useTallViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1200, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
 }
 
 void main() {
@@ -165,5 +204,111 @@ void main() {
     // Settings has NO search trigger (scope e: no new controls).
     expect(find.byKey(const Key('floating-search-button')), findsNothing);
     expect(find.byKey(const Key('global-search-button')), findsNothing);
+  });
+
+  group('Sync section', () {
+    testWidgets('idle: status, last-synced time and enabled button', (
+      tester,
+    ) async {
+      useTallViewport(tester);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final fake = _FakeSyncService(
+        initial: SyncState.idle(lastSyncedAt: now - 2 * 60 * 1000),
+      );
+      await tester.pumpWidget(
+        buildApp(
+          _FakeSettingsRepository(const AppSettingsData()),
+          syncService: fake,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sync'), findsOneWidget);
+      expect(find.text('Idle'), findsOneWidget);
+      expect(find.text('Last sync: 2 minutes ago'), findsOneWidget);
+      expect(find.text('Sync now'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('sync-now-button')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('idle with no prior sync: shows never synced', (tester) async {
+      useTallViewport(tester);
+      await tester.pumpWidget(
+        buildApp(
+          _FakeSettingsRepository(const AppSettingsData()),
+          syncService: _FakeSyncService(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Never synced'), findsOneWidget);
+    });
+
+    testWidgets('syncing: spinner shown and button disabled', (tester) async {
+      useTallViewport(tester);
+      await tester.pumpWidget(
+        buildApp(
+          _FakeSettingsRepository(const AppSettingsData()),
+          syncService: _FakeSyncService(initial: const SyncState.syncing()),
+        ),
+      );
+      // No pumpAndSettle: the indeterminate spinner never settles.
+
+      expect(find.text('Syncing…'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('sync-now-button')),
+      );
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('tapping Sync now invokes syncNow exactly once per tap', (
+      tester,
+    ) async {
+      useTallViewport(tester);
+      final fake = _FakeSyncService();
+      await tester.pumpWidget(
+        buildApp(
+          _FakeSettingsRepository(const AppSettingsData()),
+          syncService: fake,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('sync-now-button')));
+      await tester.pump();
+
+      expect(fake.syncNowCalls, 1);
+    });
+
+    testWidgets('sync strings are localized in Polish', (tester) async {
+      useTallViewport(tester);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      await tester.pumpWidget(
+        buildApp(
+          _FakeSettingsRepository(const AppSettingsData()),
+          syncService: _FakeSyncService(
+            initial: SyncState.idle(lastSyncedAt: now),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Polish'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Synchronizacja'), findsOneWidget);
+      expect(find.text('Bezczynny'), findsOneWidget);
+      expect(
+        find.text('Ostatnia synchronizacja: przed chwilą'),
+        findsOneWidget,
+      );
+      expect(find.text('Synchronizuj teraz'), findsOneWidget);
+    });
   });
 }

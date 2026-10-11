@@ -171,5 +171,43 @@
         "type": "String"
       }
     }
+  },
+  "settingsSync": "Sync",
+  "syncStatusIdle": "Idle",
+  "syncStatusSyncing": "Syncing…",
+  "syncNow": "Sync now",
+  "syncNever": "Never synced",
+  "syncLastSynced": "Last sync: {when}",
+  "@syncLastSynced": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "syncJustNow": "just now",
+  "syncMinutesAgo": "{count, plural, one{1 minute ago} other{{count} minutes ago}}",
+  "@syncMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncHoursAgo": "{count, plural, one{1 hour ago} other{{count} hours ago}}",
+  "@syncHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncDaysAgo": "{count, plural, one{1 day ago} other{{count} days ago}}",
+  "@syncDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

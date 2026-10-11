@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../../features/sync/sync.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/destination_header.dart';
 import '../../../../shared/timezone_util.dart';
@@ -114,10 +117,70 @@ class SettingsScreen extends ConsumerWidget {
                   : settings.timezoneName,
               onChanged: (name) => notifier.setTimezone(name),
             ),
+            const SizedBox(height: 24),
+            const _SyncSection(),
           ],
         ),
       ),
     );
+  }
+}
+
+class _SyncSection extends ConsumerWidget {
+  const _SyncSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final state = ref.watch(syncServiceProvider);
+    final syncing = state.isSyncing;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.settingsSync,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        Text(syncing ? l10n.syncStatusSyncing : l10n.syncStatusIdle),
+        const SizedBox(height: 4),
+        Text(_lastSyncedLabel(l10n, state.lastSyncedAt)),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          key: const Key('sync-now-button'),
+          onPressed: syncing
+              ? null
+              : () =>
+                  unawaited(ref.read(syncServiceProvider.notifier).syncNow()),
+          icon: syncing
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.sync),
+          label: Text(l10n.syncNow),
+        ),
+      ],
+    );
+  }
+
+  String _lastSyncedLabel(AppLocalizations l10n, int? lastSyncedAt) {
+    if (lastSyncedAt == null) return l10n.syncNever;
+    final at = DateTime.fromMillisecondsSinceEpoch(lastSyncedAt);
+    final diff = DateTime.now().difference(at);
+    final String when;
+    if (diff.inMinutes < 1) {
+      when = l10n.syncJustNow;
+    } else if (diff.inHours < 1) {
+      when = l10n.syncMinutesAgo(diff.inMinutes);
+    } else if (diff.inDays < 1) {
+      when = l10n.syncHoursAgo(diff.inHours);
+    } else {
+      when = l10n.syncDaysAgo(diff.inDays);
+    }
+    return l10n.syncLastSynced(when);
   }
 }
 

@@ -171,5 +171,43 @@
         "type": "String"
       }
     }
+  },
+  "settingsSync": "Synchronizacja",
+  "syncStatusIdle": "Bezczynny",
+  "syncStatusSyncing": "Synchronizowanie…",
+  "syncNow": "Synchronizuj teraz",
+  "syncNever": "Nigdy nie synchronizowano",
+  "syncLastSynced": "Ostatnia synchronizacja: {when}",
+  "@syncLastSynced": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "syncJustNow": "przed chwilą",
+  "syncMinutesAgo": "{count, plural, one{1 minutę temu} few{{count} minuty temu} many{{count} minut temu} other{{count} minuty temu}}",
+  "@syncMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncHoursAgo": "{count, plural, one{1 godzinę temu} few{{count} godziny temu} many{{count} godzin temu} other{{count} godziny temu}}",
+  "@syncHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncDaysAgo": "{count, plural, one{1 dzień temu} few{{count} dni temu} many{{count} dni temu} other{{count} dni temu}}",
+  "@syncDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
